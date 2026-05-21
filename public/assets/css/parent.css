@@ -1,0 +1,360 @@
+/*
+ * EduTrack — Parent Portal Styles
+ * Extends base.css with parent-specific components.
+ * Import AFTER base.css on every parent page.
+ *
+ * Aesthetic: warmer and softer than the lecturer portal.
+ * Parents are not power users — clarity and reassurance over density.
+ */
+
+/* ── Portal colour overrides ─────────────────────────────────────────────── */
+:root {
+  --color-nav-bg:        #1B3A52;
+  --color-nav-accent:    #0F7B6C;
+  --color-portal-accent: #C47B12;   /* Warm amber for parent portal */
+}
+
+/* ── Welcome header ──────────────────────────────────────────────────────── */
+.parent-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.welcome-name {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+/* School badge (top-right) */
+.school-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-4);
+}
+
+.school-badge-icon { font-size: var(--text-base); }
+
+.school-badge-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+/* ── Child tab switcher ───────────────────────────────────────────────────── */
+.child-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.child-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border);
+  background: white;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: border-color var(--transition-fast),
+              background var(--transition-fast),
+              color var(--transition-fast);
+  color: var(--color-text-secondary);
+  position: relative;
+}
+
+.child-tab:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.child-tab.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: white;
+}
+
+.tab-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+}
+
+.child-tab:not(.active) .tab-avatar {
+  background: var(--color-bg-subtle);
+  color: var(--color-accent);
+}
+
+.tab-alert {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  background: var(--color-error);
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  display: grid;
+  place-items: center;
+  border: 2px solid white;
+}
+
+/* ── Child identity card ─────────────────────────────────────────────────── */
+.child-identity-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.child-avatar-lg {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+  color: white;
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.child-identity-info { flex: 1; }
+
+.child-full-name {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+/* Overall attendance badge (right side of identity card) */
+.child-overall-badge {
+  text-align: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  min-width: 72px;
+  flex-shrink: 0;
+}
+
+.badge-ok {
+  background: var(--color-success-light);
+  border: 1.5px solid var(--color-success);
+}
+
+.badge-alert {
+  background: var(--color-error-light);
+  border: 1.5px solid var(--color-error);
+}
+
+.child-overall-pct {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.badge-ok    .child-overall-pct { color: var(--color-success); }
+.badge-alert .child-overall-pct { color: var(--color-error);   }
+
+.child-overall-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Parent unit attendance list ─────────────────────────────────────────── */
+.parent-unit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.parent-unit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--transition-fast);
+}
+
+.parent-unit-row:last-child { border-bottom: none; }
+
+.parent-unit-row.unit-at-risk {
+  background: var(--color-error-light);
+}
+
+.parent-unit-row.unit-at-risk:hover {
+  background: #f9e0d8;
+}
+
+.parent-unit-info {
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.parent-unit-code {
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+  margin-bottom: 1px;
+}
+
+.parent-unit-name {
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.parent-unit-pct {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  min-width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Parent marks list ───────────────────────────────────────────────────── */
+.parent-marks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.parent-mark-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.parent-mark-row:last-child { border-bottom: none; }
+
+.parent-mark-info { flex: 1; overflow: hidden; }
+
+.parent-mark-score { flex-shrink: 0; text-align: right; }
+
+/* ── Quick action row ────────────────────────────────────────────────────── */
+.parent-quick-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.quick-action-btn {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-card);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color var(--transition-fast),
+              background var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.quick-action-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+/* ── Attendance detail page ───────────────────────────────────────────────── */
+.parent-child-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.child-selector-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Read-only notice ─────────────────────────────────────────────────────── */
+.readonly-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .child-identity-card {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .child-overall-badge {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    justify-content: center;
+  }
+
+  .parent-unit-row {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .parent-unit-info { min-width: 100%; }
+
+  .parent-quick-actions .quick-action-btn {
+    min-width: calc(50% - var(--space-2));
+  }
+
+  .school-badge-name { display: none; }
+
+  .hidden-mobile { display: none; }
+}

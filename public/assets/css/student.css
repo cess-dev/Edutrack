@@ -1,0 +1,368 @@
+/*
+ * EduTrack — Student Portal Styles
+ * Extends base.css with student-specific components.
+ * Import AFTER base.css on every student page.
+ */
+
+/* ── Portal colour overrides ─────────────────────────────────────────────── */
+:root {
+  --color-nav-bg:        #0F2D45;
+  --color-nav-accent:    #0F7B6C;
+  --color-portal-accent: #534AB7;  /* Purple accent for student portal */
+}
+
+/* ── Welcome strip ───────────────────────────────────────────────────────── */
+.welcome-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.welcome-name {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+/* ── Scan CTA button ─────────────────────────────────────────────────────── */
+.scan-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
+  background: var(--color-accent);
+  color: white;
+  border-radius: var(--radius-lg);
+  font-weight: var(--weight-semibold);
+  box-shadow: 0 4px 14px rgba(15,123,108,0.3);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.scan-cta:hover {
+  box-shadow: 0 6px 20px rgba(15,123,108,0.4);
+  transform: translateY(-2px);
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Unit attendance list ─────────────────────────────────────────────────── */
+.unit-attendance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.unit-attendance-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--transition-fast);
+}
+
+.unit-attendance-row:last-child { border-bottom: none; }
+.unit-attendance-row:hover      { background: var(--color-bg-subtle); }
+
+.unit-att-code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+  margin-bottom: var(--space-1);
+}
+
+.unit-att-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.unit-att-bar-wrap { min-width: 0; }
+
+.unit-att-pct {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  min-width: 52px;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+/* ── Recent attendance log ───────────────────────────────────────────────── */
+.recent-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--transition-fast);
+}
+
+.log-row:last-child { border-bottom: none; }
+.log-row:hover      { background: var(--color-bg-subtle); }
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: block;
+}
+
+.dot-present { background: var(--color-success); }
+.dot-absent  { background: var(--color-error);   }
+.dot-excused { background: var(--color-amber);   }
+
+.log-info  { flex: 1; overflow: hidden; }
+.log-unit  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-badge { flex-shrink: 0; }
+
+/* ── Marks preview list ──────────────────────────────────────────────────── */
+.marks-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mark-preview-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--transition-fast);
+}
+
+.mark-preview-row:last-child { border-bottom: none; }
+.mark-preview-row:hover      { background: var(--color-bg-subtle); }
+
+.mark-info  { flex: 1; overflow: hidden; }
+.mark-name  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mark-score { flex-shrink: 0; text-align: right; }
+
+/* ── QR scanner page ─────────────────────────────────────────────────────── */
+.scan-page-wrapper {
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.scan-page-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+}
+
+.scan-page-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+/* Camera viewfinder card */
+.viewfinder-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Video / canvas container */
+.camera-container {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto var(--space-5);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 1;
+}
+
+#qr-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#qr-canvas {
+  display: none; /* Hidden canvas used for frame capture */
+}
+
+/* Animated corner overlay */
+#qr-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#qr-overlay::before,
+#qr-overlay::after {
+  content: '';
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-color: var(--color-accent);
+  border-style: solid;
+}
+
+#qr-overlay::before {
+  top: 16px; left: 16px;
+  border-width: 3px 0 0 3px;
+  border-radius: var(--radius-sm) 0 0 0;
+}
+
+#qr-overlay::after {
+  bottom: 16px; right: 16px;
+  border-width: 0 3px 3px 0;
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+
+/* Scan line animation */
+.scan-line {
+  position: absolute;
+  left: 16px; right: 16px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  animation: scan-sweep 2s ease-in-out infinite;
+  display: none;
+}
+
+#qr-overlay[data-active="true"] + .scan-line { display: block; }
+
+@keyframes scan-sweep {
+  0%   { top: 16px;  opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: calc(100% - 16px); opacity: 0; }
+}
+
+/* Scanner status message */
+#scanner-status {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  min-height: 24px;
+  margin-bottom: var(--space-4);
+  transition: color var(--transition-base);
+}
+
+/* Scan action buttons */
+.scan-btn-group {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+/* Success result card — shown after successful scan */
+.scan-result-card {
+  background: var(--color-success-light);
+  border: 1.5px solid var(--color-success);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+  animation: fadeIn 0.3s ease both;
+}
+
+.scan-result-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.scan-result-unit {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+.scan-result-time {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ── Attendance detail page ───────────────────────────────────────────────── */
+.attendance-filter-bar {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-chip {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: white;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  color: var(--color-text-secondary);
+}
+
+.filter-chip:hover         { border-color: var(--color-accent); color: var(--color-accent); }
+.filter-chip.active        { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+
+/* ── Marks detail page ───────────────────────────────────────────────────── */
+.unit-marks-block {
+  margin-bottom: var(--space-6);
+}
+
+.unit-marks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border: 1px solid var(--color-border-light);
+}
+
+.unit-marks-body {
+  border: 1px solid var(--color-border-light);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.unit-weighted-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-bg-subtle);
+  border-top: 1px solid var(--color-border-light);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .unit-attendance-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .unit-att-pct { text-align: left; }
+
+  .scan-page-wrapper { padding: 0 var(--space-2); }
+}

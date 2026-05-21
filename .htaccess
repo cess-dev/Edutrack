@@ -1,0 +1,67 @@
+# =============================================================================
+# EduTrack — Apache Configuration (.htaccess)
+# =============================================================================
+
+Options -Indexes -MultiViews
+
+# ── Rewrite engine ────────────────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /edutrack/
+
+    # Block hidden files (.env, .git, etc.)
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+</IfModule>
+
+# ── Block direct access to sensitive file types ───────────────────────────────
+<FilesMatch "\.(sql|log|env|lock|sh|bat|ini|bak|swp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ── Security headers ──────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header unset X-Powered-By
+</IfModule>
+
+# ── PHP settings ──────────────────────────────────────────────────────────────
+<IfModule mod_php.c>
+    php_flag expose_php Off
+    php_value session.cookie_httponly 1
+    php_value session.use_strict_mode 1
+    php_value upload_max_filesize 6M
+    php_value post_max_size 8M
+    php_value max_execution_time 60
+</IfModule>
+
+# ── Compression ───────────────────────────────────────────────────────────────
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript
+    AddOutputFilterByType DEFLATE application/json text/plain
+</IfModule>
+
+# ── Browser caching ───────────────────────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css              "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType font/woff2            "access plus 1 month"
+    ExpiresByType image/png             "access plus 1 month"
+    ExpiresByType image/jpeg            "access plus 1 month"
+    ExpiresByType image/svg+xml         "access plus 1 month"
+    ExpiresByType text/html             "access plus 0 seconds"
+</IfModule>
+
+# ── Custom error pages ────────────────────────────────────────────────────────
+ErrorDocument 403 /edutrack/public/errors/403.php
+ErrorDocument 404 /edutrack/public/errors/404.php
+ErrorDocument 500 /edutrack/public/errors/500.php

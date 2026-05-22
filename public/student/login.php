@@ -3,7 +3,7 @@
  * EduTrack — Student Login Page
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_SERVER['HTTP_X_REQUESTED_W
         $error = 'Please enter your registration number and password.';
     } else {
         if (Auth::attempt($regNumber, $password)) {
-            header('Location: ' . BASE_URL . '/public/student/dashboard.php');
+            header('Location: ' . BASE_URL . '/student/dashboard');
             exit;
         } else {
             $error = 'Invalid registration number or password.';
@@ -152,9 +152,9 @@ $schoolName = DB::row(
       <div class="portal-switcher">
         <p class="text-sm text-muted">Not a student?</p>
         <div class="portal-links">
-          <a href="<?= BASE_URL ?>/public/lecturer/login.php" class="portal-link">👨‍🏫 Lecturer</a>
-          <a href="<?= BASE_URL ?>/public/parent/login.php"   class="portal-link">👨‍👩‍👧 Parent</a>
-          <a href="<?= BASE_URL ?>/public/admin/login.php"    class="portal-link">⚙️ Admin</a>
+          <a href="<?= BASE_URL ?>/lecturer/login" class="portal-link">👨‍🏫 Lecturer</a>
+          <a href="<?= BASE_URL ?>/parent/login"   class="portal-link">👨‍👩‍👧 Parent</a>
+          <a href="<?= BASE_URL ?>/admin/login"    class="portal-link">⚙️ Admin</a>
         </div>
       </div>
 

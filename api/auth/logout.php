@@ -17,7 +17,7 @@
  *        (used by the AJAX logout button)
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -28,10 +28,10 @@ Auth::startSession();
 $role = Auth::role() ?? 'student';
 
 $loginPages = [
-    'admin'    => BASE_URL . '/public/admin/login.php',
-    'lecturer' => BASE_URL . '/public/lecturer/login.php',
-    'student'  => BASE_URL . '/public/student/login.php',
-    'parent'   => BASE_URL . '/public/parent/login.php',
+    'admin'    => BASE_URL . '/admin/login',
+    'lecturer' => BASE_URL . '/lecturer/login',
+    'student'  => BASE_URL . '/student/login',
+    'parent'   => BASE_URL . '/parent/login',
 ];
 
 $loginPage = $loginPages[$role] ?? BASE_URL . '/index.php';

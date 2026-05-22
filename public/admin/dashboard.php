@@ -10,7 +10,7 @@
  *   - System health indicators (DB connection, session, settings)
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -95,7 +95,7 @@ $pageTitle = 'Admin Dashboard';
         <span class="text-sm text-muted hidden-mobile">
           <?= htmlspecialchars($settings['school_name'] ?? APP_NAME) ?>
         </span>
-        <a href="<?= BASE_URL ?>/api/auth/logout.php"
+        <a href="<?= BASE_URL ?>/api/auth/logout"
            class="btn btn-ghost btn-sm" data-logout>
           Sign out
         </a>
@@ -118,7 +118,7 @@ $pageTitle = 'Admin Dashboard';
             Semester <?= $semester ?>
           </p>
         </div>
-        <a href="<?= BASE_URL ?>/public/admin/users.php"
+        <a href="<?= BASE_URL ?>/admin/users"
            class="btn btn-primary">
           + Add User
         </a>
@@ -135,7 +135,7 @@ $pageTitle = 'Admin Dashboard';
           <div class="stat-body">
             <div class="stat-value"><?= $stats['lecturer'] ?></div>
             <div class="stat-label">Lecturers</div>
-            <a href="<?= BASE_URL ?>/public/admin/users.php?role=lecturer"
+            <a href="<?= BASE_URL ?>/admin/users?role=lecturer"
                class="text-xs text-accent" style="margin-top:4px;display:block">
               Manage →
             </a>
@@ -150,7 +150,7 @@ $pageTitle = 'Admin Dashboard';
           <div class="stat-body">
             <div class="stat-value"><?= $stats['student'] ?></div>
             <div class="stat-label">Students</div>
-            <a href="<?= BASE_URL ?>/public/admin/users.php?role=student"
+            <a href="<?= BASE_URL ?>/admin/users?role=student"
                class="text-xs text-accent" style="margin-top:4px;display:block">
               Manage →
             </a>
@@ -165,7 +165,7 @@ $pageTitle = 'Admin Dashboard';
           <div class="stat-body">
             <div class="stat-value"><?= $stats['parent'] ?></div>
             <div class="stat-label">Parents</div>
-            <a href="<?= BASE_URL ?>/public/admin/users.php?role=parent"
+            <a href="<?= BASE_URL ?>/admin/users?role=parent"
                class="text-xs text-accent" style="margin-top:4px;display:block">
               Manage →
             </a>
@@ -226,37 +226,37 @@ $pageTitle = 'Admin Dashboard';
           </div>
           <div class="admin-quick-grid">
 
-            <a href="<?= BASE_URL ?>/public/admin/users.php"
+            <a href="<?= BASE_URL ?>/admin/users"
                class="admin-quick-card">
               <span class="admin-quick-icon">👥</span>
               <span class="admin-quick-label">Manage Users</span>
             </a>
 
-            <a href="<?= BASE_URL ?>/public/admin/courses.php"
+            <a href="<?= BASE_URL ?>/admin/courses"
                class="admin-quick-card">
               <span class="admin-quick-icon">📚</span>
               <span class="admin-quick-label">Courses &amp; Units</span>
             </a>
 
-            <a href="<?= BASE_URL ?>/public/admin/enrollments.php"
+            <a href="<?= BASE_URL ?>/admin/enrollments"
                class="admin-quick-card">
               <span class="admin-quick-icon">📋</span>
               <span class="admin-quick-label">Enrollments</span>
             </a>
 
-            <a href="<?= BASE_URL ?>/public/admin/settings.php"
+            <a href="<?= BASE_URL ?>/admin/settings"
                class="admin-quick-card">
               <span class="admin-quick-icon">⚙️</span>
               <span class="admin-quick-label">System Settings</span>
             </a>
 
-            <a href="<?= BASE_URL ?>/public/admin/reports.php"
+            <a href="<?= BASE_URL ?>/admin/reports"
                class="admin-quick-card">
               <span class="admin-quick-icon">🖨️</span>
               <span class="admin-quick-label">Reports</span>
             </a>
 
-            <a href="<?= BASE_URL ?>/public/admin/audit.php"
+            <a href="<?= BASE_URL ?>/admin/audit"
                class="admin-quick-card">
               <span class="admin-quick-icon">🔍</span>
               <span class="admin-quick-label">Audit Logs</span>
@@ -269,7 +269,7 @@ $pageTitle = 'Admin Dashboard';
         <div class="card animate-fade-in" style="animation-delay:0.4s">
           <div class="card-header">
             <div class="card-title">System Settings</div>
-            <a href="<?= BASE_URL ?>/public/admin/settings.php"
+            <a href="<?= BASE_URL ?>/admin/settings"
                class="btn btn-secondary btn-sm">Edit</a>
           </div>
           <div class="settings-snapshot">
@@ -319,7 +319,7 @@ $pageTitle = 'Admin Dashboard';
             <div class="card-title">Recently Registered Users</div>
             <div class="card-subtitle">Last 5 accounts created</div>
           </div>
-          <a href="<?= BASE_URL ?>/public/admin/users.php"
+          <a href="<?= BASE_URL ?>/admin/users"
              class="btn btn-secondary btn-sm">View All</a>
         </div>
 
@@ -328,7 +328,7 @@ $pageTitle = 'Admin Dashboard';
             <span class="empty-icon">👥</span>
             <p class="empty-title">No users yet</p>
             <p class="empty-text">
-              <a href="<?= BASE_URL ?>/public/admin/users.php">Add the first user</a>
+              <a href="<?= BASE_URL ?>/admin/users">Add the first user</a>
               to get started.
             </p>
           </div>
@@ -377,7 +377,7 @@ $pageTitle = 'Admin Dashboard';
                       <?= date('d M Y', strtotime($u['created_at'])) ?>
                     </td>
                     <td>
-                      <a href="<?= BASE_URL ?>/public/admin/users.php?edit=<?= $u['id'] ?? '' ?>"
+                      <a href="<?= BASE_URL ?>/admin/users?edit=<?= $u['id'] ?? '' ?>"
                          class="btn btn-ghost btn-sm">
                         Edit
                       </a>
@@ -398,7 +398,7 @@ $pageTitle = 'Admin Dashboard';
             <div class="card-title">Recent Activity</div>
             <div class="card-subtitle">Last 8 system actions</div>
           </div>
-          <a href="<?= BASE_URL ?>/public/admin/audit.php"
+          <a href="<?= BASE_URL ?>/admin/audit"
              class="btn btn-secondary btn-sm">Full Log</a>
         </div>
 

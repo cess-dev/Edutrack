@@ -11,7 +11,7 @@
  *   - Marks snapshot (latest published assessments)
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -101,11 +101,11 @@ $pageTitle = 'Dashboard';
         <span class="text-sm text-muted">
           <?= htmlspecialchars($academicYear) ?> &nbsp;·&nbsp; Sem <?= $semester ?>
         </span>
-        <a href="<?= BASE_URL ?>/public/student/scan.php"
+        <a href="<?= BASE_URL ?>/student/scan"
            class="btn btn-primary btn-sm">
           📷 Scan QR
         </a>
-        <a href="<?= BASE_URL ?>/api/auth/logout.php"
+        <a href="<?= BASE_URL ?>/api/auth/logout"
            class="btn btn-ghost btn-sm" data-logout>
           Sign out
         </a>
@@ -125,7 +125,7 @@ $pageTitle = 'Dashboard';
             <span class="font-mono"><?= htmlspecialchars($user['reg_number']) ?></span>
           </p>
         </div>
-        <a href="<?= BASE_URL ?>/public/student/scan.php"
+        <a href="<?= BASE_URL ?>/student/scan"
            class="btn btn-primary scan-cta">
           <span style="font-size:1.2em">📷</span>
           Scan Attendance QR
@@ -208,7 +208,7 @@ $pageTitle = 'Dashboard';
               <?= htmlspecialchars($academicYear) ?> · Semester <?= $semester ?>
             </div>
           </div>
-          <a href="<?= BASE_URL ?>/public/student/attendance.php"
+          <a href="<?= BASE_URL ?>/student/attendance"
              class="btn btn-secondary btn-sm">
             Full History
           </a>
@@ -275,7 +275,7 @@ $pageTitle = 'Dashboard';
         <div class="card animate-fade-in" style="animation-delay:0.3s">
           <div class="card-header">
             <div class="card-title">Recent Attendance</div>
-            <a href="<?= BASE_URL ?>/public/student/attendance.php"
+            <a href="<?= BASE_URL ?>/student/attendance"
                class="btn btn-secondary btn-sm">View all</a>
           </div>
 
@@ -325,7 +325,7 @@ $pageTitle = 'Dashboard';
         <div class="card animate-fade-in" style="animation-delay:0.35s">
           <div class="card-header">
             <div class="card-title">Recent Marks</div>
-            <a href="<?= BASE_URL ?>/public/student/marks.php"
+            <a href="<?= BASE_URL ?>/student/marks"
                class="btn btn-secondary btn-sm">View all</a>
           </div>
 
@@ -377,16 +377,16 @@ $pageTitle = 'Dashboard';
 
 <!-- ── Mobile bottom nav ──────────────────────────────────────────────────── -->
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/student/dashboard.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/student/dashboard" class="mobile-nav-item active">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/scan.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/scan" class="mobile-nav-item">
     <span class="nav-icon">📷</span><span>Scan</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/attendance.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/attendance" class="mobile-nav-item">
     <span class="nav-icon">📋</span><span>Attendance</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/marks.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/marks" class="mobile-nav-item">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
 </nav>

@@ -6,7 +6,7 @@
  * Reuses the "My Units" section from the dashboard with the same unit data.
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -66,7 +66,7 @@ $pageTitle = 'Start Session';
   <div class="main">
 
     <header class="topbar">
-      <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php"
+      <a href="<?= BASE_URL ?>/lecturer/dashboard"
          class="btn btn-ghost btn-sm" style="margin-right:var(--space-2)">
         ← Back
       </a>
@@ -179,16 +179,16 @@ $pageTitle = 'Start Session';
 </div>
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
   <a href="<?= BASE_URL ?>/public/lecturer/units.php" class="mobile-nav-item active">
     <span class="nav-icon">📚</span><span>Units</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/marks.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/marks" class="mobile-nav-item">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/disputes.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/disputes" class="mobile-nav-item">
     <span class="nav-icon">⚠️</span><span>Disputes</span>
   </a>
 </nav>

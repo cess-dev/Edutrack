@@ -10,7 +10,7 @@
  *   - View the full class mark sheet in a grid
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -251,7 +251,7 @@ $pageTitle = 'Marks Management';
               </div>
             </div>
             <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center">
-              <a href="<?= BASE_URL ?>/public/lecturer/marksheet.php?unit_id=<?= $selectedUnitId ?>"
+              <a href="<?= BASE_URL ?>/lecturer/marksheet?unit_id=<?= $selectedUnitId ?>"
                  class="btn btn-outline btn-sm">
                 View all
               </a>
@@ -503,16 +503,16 @@ $pageTitle = 'Marks Management';
 
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/sessions.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/sessions" class="mobile-nav-item">
     <span class="nav-icon">📋</span><span>Sessions</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/marks.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/lecturer/marks" class="mobile-nav-item active">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/disputes.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/disputes" class="mobile-nav-item">
     <span class="nav-icon">⚠️</span><span>Disputes</span>
   </a>
 </nav>

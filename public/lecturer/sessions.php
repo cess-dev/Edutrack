@@ -6,7 +6,7 @@
  * with scan counts, status, and links to registers and reports.
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -100,7 +100,7 @@ $pageTitle = 'Session History';
       <span class="topbar-title">Session History</span>
       <div class="topbar-actions">
         <button class="btn btn-primary btn-sm"
-                onclick="window.location='<?= BASE_URL ?>/public/lecturer/dashboard.php'">
+                onclick="window.location='<?= BASE_URL ?>/lecturer/dashboard'">
           ▶ Start New Session
         </button>
       </div>
@@ -234,12 +234,12 @@ $pageTitle = 'Session History';
                     <td>
                       <div style="display:flex;gap:var(--space-2)">
                         <?php if ($s['is_active']): ?>
-                          <a href="<?= BASE_URL ?>/public/lecturer/session_live.php?id=<?= $s['id'] ?>"
+                          <a href="<?= BASE_URL ?>/lecturer/session/live?id=<?= $s['id'] ?>"
                              class="btn btn-primary btn-sm">
                             View Live
                           </a>
                         <?php else: ?>
-                          <a href="<?= BASE_URL ?>/public/lecturer/session_live.php?id=<?= $s['id'] ?>"
+                          <a href="<?= BASE_URL ?>/lecturer/session/live?id=<?= $s['id'] ?>"
                              class="btn btn-secondary btn-sm">
                             Register
                           </a>
@@ -286,16 +286,16 @@ $pageTitle = 'Session History';
 </div><!-- /layout -->
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/sessions.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/lecturer/sessions" class="mobile-nav-item active">
     <span class="nav-icon">📋</span><span>Sessions</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/marks.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/marks" class="mobile-nav-item">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/disputes.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/disputes" class="mobile-nav-item">
     <span class="nav-icon">⚠️</span><span>Disputes</span>
   </a>
 </nav>

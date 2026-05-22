@@ -39,7 +39,7 @@ $pendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Overview</div>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php"
+    <a href="<?= BASE_URL ?>/lecturer/dashboard"
        class="nav-item <?= navActive('dashboard.php', $currentPage) ?>">
       <span class="nav-icon">🏠</span>
       <span>Dashboard</span>
@@ -47,19 +47,19 @@ $pendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Attendance</div>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/session_start.php"
+    <a href="<?= BASE_URL ?>/lecturer/session/start"
        class="nav-item <?= navActive('session_start.php', $currentPage) ?>">
       <span class="nav-icon">▶️</span>
       <span>Start Session</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/sessions.php"
+    <a href="<?= BASE_URL ?>/lecturer/sessions"
        class="nav-item <?= navActive('sessions.php', $currentPage) ?>">
       <span class="nav-icon">📋</span>
       <span>Session History</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/disputes.php"
+    <a href="<?= BASE_URL ?>/lecturer/disputes"
        class="nav-item <?= navActive('disputes.php', $currentPage) ?>">
       <span class="nav-icon">⚠️</span>
       <span>Disputes</span>
@@ -70,13 +70,13 @@ $pendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Marks</div>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/marks.php"
+    <a href="<?= BASE_URL ?>/lecturer/marks"
        class="nav-item <?= navActive('marks.php', $currentPage) ?>">
       <span class="nav-icon">📝</span>
       <span>Upload Marks</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/marksheet.php"
+    <a href="<?= BASE_URL ?>/lecturer/marksheet"
        class="nav-item <?= navActive('marksheet.php', $currentPage) ?>">
       <span class="nav-icon">📊</span>
       <span>Mark Sheet</span>
@@ -84,7 +84,7 @@ $pendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Reports</div>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/analytics.php"
+    <a href="<?= BASE_URL ?>/lecturer/analytics"
        class="nav-item <?= navActive('analytics.php', $currentPage) ?>">
       <span class="nav-icon">📈</span>
       <span>Analytics</span>
@@ -93,13 +93,13 @@ $pendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Account</div>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/profile.php"
+    <a href="<?= BASE_URL ?>/lecturer/profile"
        class="nav-item <?= navActive('profile.php', $currentPage) ?>">
       <span class="nav-icon">👤</span>
       <span>My Profile</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/api/auth/logout.php"
+    <a href="<?= BASE_URL ?>/api/auth/logout"
        class="nav-item"
        data-logout>
       <span class="nav-icon">🚪</span>

@@ -35,10 +35,10 @@ class Auth
      * When a guard fails, the user is sent to the correct login page.
      */
     private static array $loginPages = [
-        'admin'    => BASE_URL . '/public/admin/login.php',
-        'lecturer' => BASE_URL . '/public/lecturer/login.php',
-        'student'  => BASE_URL . '/public/student/login.php',
-        'parent'   => BASE_URL . '/public/parent/login.php',
+        'admin'    => BASE_URL . '/admin/login',
+        'lecturer' => BASE_URL . '/lecturer/login',
+        'student'  => BASE_URL . '/student/login',
+        'parent'   => BASE_URL . '/parent/login',
     ];
 
     /**
@@ -46,10 +46,10 @@ class Auth
      * After login, users land on their role-specific dashboard.
      */
     private static array $dashboards = [
-        'admin'    => BASE_URL . '/public/admin/dashboard.php',
-        'lecturer' => BASE_URL . '/public/lecturer/dashboard.php',
-        'student'  => BASE_URL . '/public/student/dashboard.php',
-        'parent'   => BASE_URL . '/public/parent/dashboard.php',
+        'admin'    => BASE_URL . '/admin/dashboard',
+        'lecturer' => BASE_URL . '/lecturer/dashboard',
+        'student'  => BASE_URL . '/student/dashboard',
+        'parent'   => BASE_URL . '/parent/dashboard',
     ];
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -245,8 +245,8 @@ class Auth
 
         session_destroy();
 
-        $role = $_SESSION['role'] ?? 'student';
-        $dest = self::$loginPages[$role] ?? BASE_URL . '/index.php';
+	$role = self::role() ?? 'student';
+	$dest = self::$loginPages[$role] ?? BASE_URL;
         header('Location: ' . $dest);
         exit;
     }
@@ -401,13 +401,13 @@ class Auth
 
     private static function redirectToLogin(): void
     {
-        header('Location: ' . BASE_URL . '/index.php');
+        header('Location: ' . BASE_URL);
         exit;
     }
 
     private static function redirectForbidden(): void
     {
-        header('Location: ' . BASE_URL . '/public/errors/403.php');
+        header('Location: ' . BASE_URL . '/error/403');
         exit;
     }
 

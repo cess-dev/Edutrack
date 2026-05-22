@@ -33,7 +33,7 @@ $studentPendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Overview</div>
 
-    <a href="<?= BASE_URL ?>/public/student/dashboard.php"
+    <a href="<?= BASE_URL ?>/student/dashboard"
        class="nav-item <?= studentNavActive('dashboard.php', $currentPage) ?>">
       <span class="nav-icon">🏠</span>
       <span>Dashboard</span>
@@ -41,13 +41,13 @@ $studentPendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Attendance</div>
 
-    <a href="<?= BASE_URL ?>/public/student/scan.php"
+    <a href="<?= BASE_URL ?>/student/scan"
        class="nav-item <?= studentNavActive('scan.php', $currentPage) ?>">
       <span class="nav-icon">📷</span>
       <span>Scan QR Code</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/student/attendance.php"
+    <a href="<?= BASE_URL ?>/student/attendance"
        class="nav-item <?= studentNavActive('attendance.php', $currentPage) ?>">
       <span class="nav-icon">📋</span>
       <span>My Attendance</span>
@@ -64,13 +64,13 @@ $studentPendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Academics</div>
 
-    <a href="<?= BASE_URL ?>/public/student/marks.php"
+    <a href="<?= BASE_URL ?>/student/marks"
        class="nav-item <?= studentNavActive('marks.php', $currentPage) ?>">
       <span class="nav-icon">📝</span>
       <span>My Marks</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/student/transcript.php"
+    <a href="<?= BASE_URL ?>/student/transcript"
        class="nav-item <?= studentNavActive('transcript.php', $currentPage) ?>">
       <span class="nav-icon">🎓</span>
       <span>Transcript</span>
@@ -78,13 +78,13 @@ $studentPendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Account</div>
 
-    <a href="<?= BASE_URL ?>/public/student/profile.php"
+    <a href="<?= BASE_URL ?>/student/profile"
        class="nav-item <?= studentNavActive('profile.php', $currentPage) ?>">
       <span class="nav-icon">👤</span>
       <span>My Profile</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/api/auth/logout.php"
+    <a href="<?= BASE_URL ?>/api/auth/logout"
        class="nav-item" data-logout>
       <span class="nav-icon">🚪</span>
       <span>Sign Out</span>

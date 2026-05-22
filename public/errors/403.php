@@ -2,7 +2,7 @@
 /**
  * EduTrack — 403 Forbidden Error Page
  */
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 http_response_code(403);
 ?>

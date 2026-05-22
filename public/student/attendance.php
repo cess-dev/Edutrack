@@ -8,7 +8,7 @@
  *   - Dispute submission for absent sessions within the window
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -133,7 +133,7 @@ $pageTitle = 'My Attendance';
     <header class="topbar">
       <span class="topbar-title">My Attendance</span>
       <div class="topbar-actions">
-        <a href="<?= BASE_URL ?>/public/student/scan.php"
+        <a href="<?= BASE_URL ?>/student/scan"
            class="btn btn-primary btn-sm">
           📷 Scan QR
         </a>
@@ -432,16 +432,16 @@ $pageTitle = 'My Attendance';
 </div>
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/student/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/scan.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/scan" class="mobile-nav-item">
     <span class="nav-icon">📷</span><span>Scan</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/attendance.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/student/attendance" class="mobile-nav-item active">
     <span class="nav-icon">📋</span><span>Attendance</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/marks.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/marks" class="mobile-nav-item">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
 </nav>

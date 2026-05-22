@@ -7,7 +7,7 @@
  * running unit total, grade letter, and overall GPA.
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -54,7 +54,7 @@ $pageTitle = 'My Marks';
     <header class="topbar">
       <span class="topbar-title">My Marks</span>
       <div class="topbar-actions">
-        <a href="<?= BASE_URL ?>/public/student/transcript.php"
+        <a href="<?= BASE_URL ?>/student/transcript"
            class="btn btn-secondary btn-sm">
           🎓 View Transcript
         </a>
@@ -270,16 +270,16 @@ $pageTitle = 'My Marks';
 </div><!-- /layout -->
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/student/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/scan.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/scan" class="mobile-nav-item">
     <span class="nav-icon">📷</span><span>Scan</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/attendance.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/attendance" class="mobile-nav-item">
     <span class="nav-icon">📋</span><span>Attendance</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/marks.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/student/marks" class="mobile-nav-item active">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
 </nav>

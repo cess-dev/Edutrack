@@ -31,7 +31,7 @@ $activeSessions = (int)(DB::row(
 
     <div class="nav-section-label">Overview</div>
 
-    <a href="<?= BASE_URL ?>/public/admin/dashboard.php"
+    <a href="<?= BASE_URL ?>/admin/dashboard"
        class="nav-item <?= adminNavActive('dashboard.php', $currentPage) ?>">
       <span class="nav-icon">🏠</span>
       <span>Dashboard</span>
@@ -39,13 +39,13 @@ $activeSessions = (int)(DB::row(
 
     <div class="nav-section-label">Users</div>
 
-    <a href="<?= BASE_URL ?>/public/admin/users.php"
+    <a href="<?= BASE_URL ?>/admin/users"
        class="nav-item <?= adminNavActive('users.php', $currentPage) ?>">
       <span class="nav-icon">👥</span>
       <span>All Users</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/admin/enrollments.php"
+    <a href="<?= BASE_URL ?>/admin/enrollments"
        class="nav-item <?= adminNavActive('enrollments.php', $currentPage) ?>">
       <span class="nav-icon">📋</span>
       <span>Enrollments</span>
@@ -53,7 +53,7 @@ $activeSessions = (int)(DB::row(
 
     <div class="nav-section-label">Academic</div>
 
-    <a href="<?= BASE_URL ?>/public/admin/courses.php"
+    <a href="<?= BASE_URL ?>/admin/courses"
        class="nav-item <?= adminNavActive('courses.php', $currentPage) ?>">
       <span class="nav-icon">📚</span>
       <span>Courses &amp; Units</span>
@@ -81,19 +81,19 @@ $activeSessions = (int)(DB::row(
 
     <div class="nav-section-label">System</div>
 
-    <a href="<?= BASE_URL ?>/public/admin/settings.php"
+    <a href="<?= BASE_URL ?>/admin/settings"
        class="nav-item <?= adminNavActive('settings.php', $currentPage) ?>">
       <span class="nav-icon">⚙️</span>
       <span>Settings</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/admin/reports.php"
+    <a href="<?= BASE_URL ?>/admin/reports"
        class="nav-item <?= adminNavActive('reports.php', $currentPage) ?>">
       <span class="nav-icon">🖨️</span>
       <span>Reports</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/admin/audit.php"
+    <a href="<?= BASE_URL ?>/admin/audit"
        class="nav-item <?= adminNavActive('audit.php', $currentPage) ?>">
       <span class="nav-icon">🔍</span>
       <span>Audit Log</span>
@@ -101,13 +101,13 @@ $activeSessions = (int)(DB::row(
 
     <div class="nav-section-label">Account</div>
 
-    <a href="<?= BASE_URL ?>/public/admin/profile.php"
+    <a href="<?= BASE_URL ?>/admin/profile"
        class="nav-item <?= adminNavActive('profile.php', $currentPage) ?>">
       <span class="nav-icon">👤</span>
       <span>My Profile</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/api/auth/logout.php"
+    <a href="<?= BASE_URL ?>/api/auth/logout"
        class="nav-item" data-logout>
       <span class="nav-icon">🚪</span>
       <span>Sign Out</span>

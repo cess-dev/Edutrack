@@ -10,7 +10,7 @@
  *   - Recent sessions table
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -109,7 +109,7 @@ $pageTitle = 'Dashboard';
         <span class="text-sm text-muted">
           <?= htmlspecialchars($academicYear) ?> &nbsp;·&nbsp; Semester <?= $semester ?>
         </span>
-        <a href="<?= BASE_URL ?>/api/auth/logout.php"
+        <a href="<?= BASE_URL ?>/api/auth/logout"
            class="btn btn-ghost btn-sm"
            data-logout>
           Sign out
@@ -168,7 +168,7 @@ $pageTitle = 'Dashboard';
             <div class="stat-value"><?= $stats['pending_disputes'] ?></div>
             <div class="stat-label">Pending Disputes</div>
             <?php if ($stats['pending_disputes'] > 0): ?>
-              <a href="<?= BASE_URL ?>/public/lecturer/disputes.php"
+              <a href="<?= BASE_URL ?>/lecturer/disputes"
                  class="text-xs text-accent" style="margin-top:4px;display:block">
                 Review now →
               </a>
@@ -191,7 +191,7 @@ $pageTitle = 'Dashboard';
           </span>
         </div>
         <div class="active-session-actions">
-          <a href="<?= BASE_URL ?>/public/lecturer/session_live.php?id=<?= $activeSession['id'] ?>"
+          <a href="<?= BASE_URL ?>/lecturer/session/live?id=<?= $activeSession['id'] ?>"
              class="btn btn-primary btn-sm">
             View Live Feed
           </a>
@@ -253,7 +253,7 @@ $pageTitle = 'Dashboard';
               <div class="card-title">Recent Sessions</div>
               <div class="card-subtitle">Last 5 attendance sessions</div>
             </div>
-            <a href="<?= BASE_URL ?>/public/lecturer/sessions.php" class="btn btn-secondary btn-sm">
+            <a href="<?= BASE_URL ?>/lecturer/sessions" class="btn btn-secondary btn-sm">
               View all
             </a>
           </div>
@@ -357,16 +357,16 @@ $pageTitle = 'Dashboard';
 
 <!-- ── Mobile nav ────────────────────────────────────────────────────────── -->
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/lecturer/dashboard" class="mobile-nav-item active">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
   <a href="<?= BASE_URL ?>/public/lecturer/units.php" class="mobile-nav-item">
     <span class="nav-icon">📚</span><span>Units</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/marks.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/marks" class="mobile-nav-item">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/disputes.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/disputes" class="mobile-nav-item">
     <span class="nav-icon">⚠️</span><span>Disputes</span>
   </a>
 </nav>

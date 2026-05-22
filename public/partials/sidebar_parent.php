@@ -34,7 +34,7 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
 
     <div class="nav-section-label">Overview</div>
 
-    <a href="<?= BASE_URL ?>/public/parent/dashboard.php"
+    <a href="<?= BASE_URL ?>/parent/dashboard"
        class="nav-item <?= parentNavActive('dashboard.php', $currentPage) ?>">
       <span class="nav-icon">🏠</span>
       <span>Dashboard</span>
@@ -46,7 +46,7 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
       </div>
 
       <?php foreach ($children as $child): ?>
-        <a href="<?= BASE_URL ?>/public/parent/attendance.php?student_id=<?= $child['id'] ?>"
+        <a href="<?= BASE_URL ?>/parent/attendance?student_id=<?= $child['id'] ?>"
            class="nav-item <?= (parentNavActive('attendance.php', $currentPage) && ($_GET['student_id'] ?? '') == $child['id']) ? 'active' : '' ?>">
           <span class="nav-icon">
             <span style="width:20px;height:20px;background:var(--color-accent);
@@ -62,7 +62,7 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
 
     <div class="nav-section-label">Attendance</div>
 
-    <a href="<?= BASE_URL ?>/public/parent/attendance.php<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
+    <a href="<?= BASE_URL ?>/parent/attendance<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
        class="nav-item <?= parentNavActive('attendance.php', $currentPage) ?>">
       <span class="nav-icon">📋</span>
       <span>Attendance</span>
@@ -70,7 +70,7 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
 
     <div class="nav-section-label">Academics</div>
 
-    <a href="<?= BASE_URL ?>/public/parent/marks.php<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
+    <a href="<?= BASE_URL ?>/parent/marks<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
        class="nav-item <?= parentNavActive('marks.php', $currentPage) ?>">
       <span class="nav-icon">📝</span>
       <span>Marks</span>
@@ -84,13 +84,13 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
 
     <div class="nav-section-label">Account</div>
 
-    <a href="<?= BASE_URL ?>/public/parent/profile.php"
+    <a href="<?= BASE_URL ?>/parent/profile"
        class="nav-item <?= parentNavActive('profile.php', $currentPage) ?>">
       <span class="nav-icon">👤</span>
       <span>My Profile</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/api/auth/logout.php"
+    <a href="<?= BASE_URL ?>/api/auth/logout"
        class="nav-item" data-logout>
       <span class="nav-icon">🚪</span>
       <span>Sign Out</span>

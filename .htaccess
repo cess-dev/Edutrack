@@ -4,13 +4,25 @@
 
 Options -Indexes -MultiViews
 
-# ── Rewrite engine ────────────────────────────────────────────────────────────
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /edutrack/
 
     # Block hidden files (.env, .git, etc.)
     RewriteRule (^|/)\.(?!well-known) - [F,L]
+
+    # Don't rewrite real static files (css, js, images etc.)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Send everything through index.php
+    RewriteRule ^ index.php [QSA,L]
+
+</IfModule>
+
+# ── Block direct access to public subfolders ──────────────────────────────────
+<IfModule mod_rewrite.c>
+    RewriteRule ^public/(admin|student|lecturer|parent|partials)/ - [F,L]
 </IfModule>
 
 # ── Block direct access to sensitive file types ───────────────────────────────
@@ -34,7 +46,7 @@ Options -Indexes -MultiViews
 </IfModule>
 
 # ── PHP settings ──────────────────────────────────────────────────────────────
-<IfModule mod_php.c>
+<IfModule mod_php8.c>
     php_flag expose_php Off
     php_value session.cookie_httponly 1
     php_value session.use_strict_mode 1
@@ -52,13 +64,13 @@ Options -Indexes -MultiViews
 # ── Browser caching ───────────────────────────────────────────────────────────
 <IfModule mod_expires.c>
     ExpiresActive On
-    ExpiresByType text/css              "access plus 1 week"
+    ExpiresByType text/css               "access plus 1 week"
     ExpiresByType application/javascript "access plus 1 week"
-    ExpiresByType font/woff2            "access plus 1 month"
-    ExpiresByType image/png             "access plus 1 month"
-    ExpiresByType image/jpeg            "access plus 1 month"
-    ExpiresByType image/svg+xml         "access plus 1 month"
-    ExpiresByType text/html             "access plus 0 seconds"
+    ExpiresByType font/woff2             "access plus 1 month"
+    ExpiresByType image/png              "access plus 1 month"
+    ExpiresByType image/jpeg             "access plus 1 month"
+    ExpiresByType image/svg+xml          "access plus 1 month"
+    ExpiresByType text/html              "access plus 0 seconds"
 </IfModule>
 
 # ── Custom error pages ────────────────────────────────────────────────────────

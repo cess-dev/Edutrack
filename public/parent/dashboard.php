@@ -13,7 +13,7 @@
  * Mobile-first: designed for parents checking on a phone.
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -129,7 +129,7 @@ $schoolName = DB::row(
         <span class="text-sm text-muted hidden-mobile">
           <?= htmlspecialchars($schoolName) ?>
         </span>
-        <a href="<?= BASE_URL ?>/api/auth/logout.php"
+        <a href="<?= BASE_URL ?>/api/auth/logout"
            class="btn btn-ghost btn-sm" data-logout>
           Sign out
         </a>
@@ -295,7 +295,7 @@ $schoolName = DB::row(
                     <div class="card-title">Attendance by Unit</div>
                     <div class="card-subtitle">Sem <?= $semester ?>, <?= $academicYear ?></div>
                   </div>
-                  <a href="<?= BASE_URL ?>/public/parent/attendance.php?student_id=<?= $child['id'] ?>"
+                  <a href="<?= BASE_URL ?>/parent/attendance?student_id=<?= $child['id'] ?>"
                      class="btn btn-secondary btn-sm">Details</a>
                 </div>
 
@@ -353,7 +353,7 @@ $schoolName = DB::row(
                     <div class="card-title">Recent Marks</div>
                     <div class="card-subtitle">Latest published grades</div>
                   </div>
-                  <a href="<?= BASE_URL ?>/public/parent/marks.php?student_id=<?= $child['id'] ?>"
+                  <a href="<?= BASE_URL ?>/parent/marks?student_id=<?= $child['id'] ?>"
                      class="btn btn-secondary btn-sm">All Marks</a>
                 </div>
 
@@ -395,12 +395,12 @@ $schoolName = DB::row(
 
             <!-- Quick action links for this child -->
             <div class="parent-quick-actions">
-              <a href="<?= BASE_URL ?>/public/parent/attendance.php?student_id=<?= $child['id'] ?>"
+              <a href="<?= BASE_URL ?>/parent/attendance?student_id=<?= $child['id'] ?>"
                  class="quick-action-btn">
                 <span>📋</span>
                 <span>Full Attendance</span>
               </a>
-              <a href="<?= BASE_URL ?>/public/parent/marks.php?student_id=<?= $child['id'] ?>"
+              <a href="<?= BASE_URL ?>/parent/marks?student_id=<?= $child['id'] ?>"
                  class="quick-action-btn">
                 <span>📝</span>
                 <span>All Marks</span>
@@ -424,16 +424,16 @@ $schoolName = DB::row(
 
 <!-- Mobile bottom nav -->
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/parent/dashboard.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/parent/dashboard" class="mobile-nav-item active">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/parent/attendance.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/parent/attendance" class="mobile-nav-item">
     <span class="nav-icon">📋</span><span>Attendance</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/parent/marks.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/parent/marks" class="mobile-nav-item">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/parent/profile.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/parent/profile" class="mobile-nav-item">
     <span class="nav-icon">👤</span><span>Profile</span>
   </a>
 </nav>

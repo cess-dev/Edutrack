@@ -33,7 +33,7 @@
  *   405 — wrong HTTP method
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -45,7 +45,7 @@ header('Content-Type: application/json; charset=utf-8');
 // If already logged in send straight to dashboard — no work needed
 if (Auth::isLoggedIn()) {
     $role     = Auth::role();
-    $redirect = BASE_URL . '/public/' . $role . '/dashboard.php';
+    $redirect = BASE_URL . '/' . $role . '/dashboard';
     echo json_encode([
         'success'  => true,
         'message'  => 'Already logged in.',
@@ -154,7 +154,7 @@ unset($_SESSION[$attemptKey], $_SESSION[$lockoutKey]);
 
 $user     = Auth::user();
 $role     = $user['role'];
-$redirect = BASE_URL . '/public/' . $role . '/dashboard.php';
+$redirect = BASE_URL . '/' . $role . '/dashboard';
 
 http_response_code(200);
 echo json_encode([

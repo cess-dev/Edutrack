@@ -11,7 +11,7 @@
  *   - At-risk student list with quick-link to register
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -492,16 +492,16 @@ $pageTitle = 'Analytics';
 </div><!-- /layout -->
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/sessions.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/sessions" class="mobile-nav-item">
     <span class="nav-icon">📋</span><span>Sessions</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/marks.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/marks" class="mobile-nav-item">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/analytics.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/lecturer/analytics" class="mobile-nav-item active">
     <span class="nav-icon">📊</span><span>Analytics</span>
   </a>
 </nav>

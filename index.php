@@ -1,47 +1,120 @@
 <?php
 /**
- * EduTrack — Root Entry Point
+ * EduTrack — Root Entry Point & Front Controller
  *
- * Handles the first request to the application.
+ * Handles ALL requests to the application via mod_rewrite.
  * Logic:
- *   1. If user is already logged in → redirect to their role dashboard
- *   2. If not logged in → show the portal selector page
+ *   1. If a route is matched → include the corresponding file
+ *   2. If user is already logged in on root URL → redirect to role dashboard
+ *   3. If not logged in on root URL → show portal selector
+ *   4. No route matched → 404
  *
- * The portal selector gives visitors four clear entry points:
- *   Lecturer | Student | Parent | Admin
- *
- * URL: /edutrack/ or /edutrack/index.php
+ * URL: /edutrack/ or /edutrack/{route}
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/backend/middleware/auth.php';
 
 Auth::startSession();
+// ── Route map ──────────────────────────────────────────────────────────────
+// Format: 'clean-url' => 'public/role/file.php'
+// Add new pages here — no .htaccess changes needed
+$routes = [
+    // Student
+    'login'                  => 'student/login.php',
+    'student/login'          => 'student/login.php',
+    'student/dashboard'      => 'student/dashboard.php',
+    'student/marks'          => 'student/marks.php',
+    'student/attendance'     => 'student/attendance.php',
+    'student/transcript'     => 'student/transcript.php',
+    'student/scan'           => 'student/scan.php',
+    'student/profile'        => 'student/profile.php',
 
-// ── Already logged in → go straight to dashboard ─────────────────────────
-if (Auth::isLoggedIn()) {
-    $role = Auth::role();
-    $destinations = [
-        'admin'    => BASE_URL . '/public/admin/dashboard.php',
-        'lecturer' => BASE_URL . '/public/lecturer/dashboard.php',
-        'student'  => BASE_URL . '/public/student/dashboard.php',
-        'parent'   => BASE_URL . '/public/parent/dashboard.php',
-    ];
-    header('Location: ' . ($destinations[$role] ?? BASE_URL . '/index.php'));
+    // Admin
+    'admin/login'            => 'admin/login.php',
+    'admin/dashboard'        => 'admin/dashboard.php',
+    'admin/users'            => 'admin/users.php',
+    'admin/courses'          => 'admin/courses.php',
+    'admin/enrollments'      => 'admin/enrollments.php',
+    'admin/reports'          => 'admin/reports.php',
+    'admin/audit'            => 'admin/audit.php',
+    'admin/settings'         => 'admin/settings.php',
+    'admin/profile'          => 'admin/profile.php',
+
+    // Lecturer
+    'lecturer/login'         => 'lecturer/login.php',
+    'lecturer/dashboard'     => 'lecturer/dashboard.php',
+    'lecturer/marks'         => 'lecturer/marks.php',
+    'lecturer/marksheet'     => 'lecturer/marksheet.php',
+    'lecturer/sessions'      => 'lecturer/sessions.php',
+    'lecturer/session/live'  => 'lecturer/session_live.php',
+    'lecturer/session/start' => 'lecturer/session_start.php',
+    'lecturer/disputes'      => 'lecturer/disputes.php',
+    'lecturer/analytics'     => 'lecturer/analytics.php',
+    'lecturer/profile'       => 'lecturer/profile.php',
+
+    // Parent
+    'parent/login'           => 'parent/login.php',
+    'parent/dashboard'       => 'parent/dashboard.php',
+    'parent/marks'           => 'parent/marks.php',
+    'parent/attendance'      => 'parent/attendance.php',
+    'parent/profile'         => 'parent/profile.php',
+
+    'error/403'             => 'errors/403.php',
+    'error/404'             => 'errors/404.php',
+    'error/500'             => 'errors/500.php',
+
+    'api/auth/logout' => '../api/auth/logout.php',
+];
+
+// ── Resolve current request to a clean route ───────────────────────────────
+$request = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+
+// Strip the base prefix (edutrack/) so routes above stay short
+$request = preg_replace('#^edutrack/?#', '', $request);
+$request = trim($request, '/');
+
+// ── If a route matches → include that file and stop ────────────────────────
+if (array_key_exists($request, $routes)) {
+    $file = __DIR__ . '/public/' . $routes[$request];
+    if (file_exists($file)) {
+        require $file;
+    } else {
+        http_response_code(500);
+        require __DIR__ . '/public/errors/500.php';
+    }
     exit;
 }
 
-// ── Read school name for display ──────────────────────────────────────────
-$schoolName = DB::row(
-    "SELECT setting_value FROM system_settings WHERE setting_key = 'school_name'"
-)['setting_value'] ?? SCHOOL_NAME;
+// ── Root URL (empty route) → portal selector or dashboard ─────────────────
+if ($request === '') {
 
-$academicYear = DB::row(
-    "SELECT setting_value FROM system_settings WHERE setting_key = 'academic_year'"
-)['setting_value'] ?? ACADEMIC_YEAR;
-?>
+    // Already logged in → go straight to role dashboard
+    if (Auth::isLoggedIn()) {
+        $role = Auth::role();
+        $destinations = [
+            'admin'    => BASE_URL . '/admin/dashboard',
+            'lecturer' => BASE_URL . '/lecturer/dashboard',
+            'student'  => BASE_URL . '/student/dashboard',
+            'parent'   => BASE_URL . '/parent/dashboard',
+        ];
+        header('Location: ' . ($destinations[$role] ?? BASE_URL));
+        exit;
+    }
+
+    // Not logged in → show portal selector (below)
+    $schoolName = DB::row(
+        "SELECT setting_value FROM system_settings WHERE setting_key = 'school_name'"
+    )['setting_value'] ?? SCHOOL_NAME;
+
+    $academicYear = DB::row(
+        "SELECT setting_value FROM system_settings WHERE setting_key = 'academic_year'"
+    )['setting_value'] ?? ACADEMIC_YEAR;
+
+    // Portal selector HTML starts here
+    ?>
 <!DOCTYPE html>
 <html lang="en" data-base-url="<?= htmlspecialchars(BASE_URL) ?>">
 <head>
@@ -67,7 +140,6 @@ $academicYear = DB::row(
       overflow-y: auto;
     }
 
-    /* Background decoration */
     body::before {
       content: '';
       position: fixed;
@@ -92,7 +164,6 @@ $academicYear = DB::row(
       pointer-events: none;
     }
 
-    /* ── Header ──────────────────────────────────────────────────────── */
     .selector-header {
       text-align: center;
       margin-bottom: var(--space-10);
@@ -134,7 +205,6 @@ $academicYear = DB::row(
       font-weight: var(--weight-medium);
     }
 
-    /* ── Portal cards grid ───────────────────────────────────────────── */
     .portal-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -173,11 +243,8 @@ $academicYear = DB::row(
       text-decoration: none;
     }
 
-    .portal-card:active {
-      transform: translateY(-1px);
-    }
+    .portal-card:active { transform: translateY(-1px); }
 
-    /* Staggered entrance animation */
     .portal-card:nth-child(1) { animation: fadeIn 0.4s ease 0.1s both; }
     .portal-card:nth-child(2) { animation: fadeIn 0.4s ease 0.15s both; }
     .portal-card:nth-child(3) { animation: fadeIn 0.4s ease 0.2s both; }
@@ -194,9 +261,7 @@ $academicYear = DB::row(
       transition: transform var(--transition-spring);
     }
 
-    .portal-card:hover .portal-icon-wrap {
-      transform: scale(1.08);
-    }
+    .portal-card:hover .portal-icon-wrap { transform: scale(1.08); }
 
     .portal-icon-lecturer { background: rgba(15,123,108,0.3);  }
     .portal-icon-student  { background: rgba(83,74,183,0.3);   }
@@ -228,7 +293,6 @@ $academicYear = DB::row(
       transform: translateX(4px);
     }
 
-    /* ── Footer ──────────────────────────────────────────────────────── */
     .selector-footer {
       margin-top: var(--space-10);
       text-align: center;
@@ -245,11 +309,8 @@ $academicYear = DB::row(
       transition: color var(--transition-fast);
     }
 
-    .selector-footer a:hover {
-      color: rgba(255,255,255,0.7);
-    }
+    .selector-footer a:hover { color: rgba(255,255,255,0.7); }
 
-    /* ── Responsive ──────────────────────────────────────────────────── */
     @media (max-width: 480px) {
       .portal-grid {
         grid-template-columns: 1fr;
@@ -273,14 +334,12 @@ $academicYear = DB::row(
 
       .portal-card-content { flex: 1; }
       .portal-card-arrow   { display: none; }
-
       .app-name { font-size: var(--text-3xl); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
   <header class="selector-header">
     <span class="app-logo">🎓</span>
     <h1 class="app-name"><?= htmlspecialchars(APP_NAME) ?></h1>
@@ -292,11 +351,11 @@ $academicYear = DB::row(
     </div>
   </header>
 
-  <!-- Portal selector cards -->
   <main class="portal-grid" aria-label="Portal selection">
 
-    <!-- Lecturer -->
-    <a href="<?= BASE_URL ?>/public/lecturer/login.php"
+    <!-- ── Card hrefs now use clean masked URLs ── -->
+
+    <a href="<?= BASE_URL ?>/lecturer/login"
        class="portal-card"
        aria-label="Lecturer Portal — Manage attendance and marks">
       <div class="portal-icon-wrap portal-icon-lecturer">👨‍🏫</div>
@@ -309,8 +368,7 @@ $academicYear = DB::row(
       <div class="portal-card-arrow">→</div>
     </a>
 
-    <!-- Student -->
-    <a href="<?= BASE_URL ?>/public/student/login.php"
+    <a href="<?= BASE_URL ?>/student/login"
        class="portal-card"
        aria-label="Student Portal — Scan QR and view grades">
       <div class="portal-icon-wrap portal-icon-student">🎓</div>
@@ -323,8 +381,7 @@ $academicYear = DB::row(
       <div class="portal-card-arrow">→</div>
     </a>
 
-    <!-- Parent -->
-    <a href="<?= BASE_URL ?>/public/parent/login.php"
+    <a href="<?= BASE_URL ?>/parent/login"
        class="portal-card"
        aria-label="Parent Portal — Monitor your child">
       <div class="portal-icon-wrap portal-icon-parent">👨‍👩‍👧</div>
@@ -337,8 +394,7 @@ $academicYear = DB::row(
       <div class="portal-card-arrow">→</div>
     </a>
 
-    <!-- Admin -->
-    <a href="<?= BASE_URL ?>/public/admin/login.php"
+    <a href="<?= BASE_URL ?>/admin/login"
        class="portal-card"
        aria-label="Admin Portal — System administration">
       <div class="portal-icon-wrap portal-icon-admin">⚙️</div>
@@ -353,7 +409,6 @@ $academicYear = DB::row(
 
   </main>
 
-  <!-- Footer -->
   <footer class="selector-footer">
     <p>
       <?= htmlspecialchars(APP_NAME) ?> v1.0
@@ -366,3 +421,10 @@ $academicYear = DB::row(
 
 </body>
 </html>
+    <?php
+    exit;
+}
+
+// ── No route matched → 404 ─────────────────────────────────────────────────
+http_response_code(404);
+require __DIR__ . '/public/errors/404.php';

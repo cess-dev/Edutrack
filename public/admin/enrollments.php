@@ -10,7 +10,7 @@
  *   - Search enrollments by student or unit
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -155,7 +155,7 @@ $pageTitle = 'Enrollment Management';
           <strong><?= htmlspecialchars($academicYear) ?></strong>,
           Semester <strong><?= $semester ?></strong>.
           To change, update the academic year and semester in
-          <a href="<?= BASE_URL ?>/public/admin/settings.php">System Settings</a>.
+          <a href="<?= BASE_URL ?>/admin/settings">System Settings</a>.
         </div>
       </div>
 

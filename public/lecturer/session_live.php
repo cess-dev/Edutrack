@@ -9,10 +9,10 @@
  *   - Manual attendance override controls
  *   - End Session button
  *
- * URL: /public/lecturer/session_live.php?id=SESSION_ID
+ * URL: /lecturer/session/live?id=SESSION_ID
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -25,7 +25,7 @@ $user      = Auth::user();
 $sessionId = (int) ($_GET['id'] ?? 0);
 
 if ($sessionId <= 0) {
-    header('Location: ' . BASE_URL . '/public/lecturer/dashboard.php');
+    header('Location: ' . BASE_URL . '/lecturer/dashboard');
     exit;
 }
 
@@ -45,7 +45,7 @@ $session = DB::row(
 );
 
 if (!$session) {
-    header('Location: ' . BASE_URL . '/public/lecturer/dashboard.php');
+    header('Location: ' . BASE_URL . '/lecturer/dashboard');
     exit;
 }
 
@@ -100,7 +100,7 @@ $pageTitle       = 'Live Session — ' . $session['unit_code'];
 
     <!-- Topbar -->
     <header class="topbar">
-      <a href="<?= BASE_URL ?>/public/lecturer/dashboard.php"
+      <a href="<?= BASE_URL ?>/lecturer/dashboard"
          class="btn btn-ghost btn-sm" style="margin-right:var(--space-2)">
         ← Back
       </a>
@@ -204,7 +204,7 @@ $pageTitle       = 'Live Session — ' . $session['unit_code'];
               <p class="empty-text">
                 Closed at <?= $session['closed_at'] ? date('H:i, d M Y', strtotime($session['closed_at'])) : 'N/A' ?>.
               </p>
-              <a href="<?= BASE_URL ?>/public/lecturer/sessions.php"
+              <a href="<?= BASE_URL ?>/lecturer/sessions"
                  class="btn btn-secondary btn-sm">
                 View All Sessions
               </a>

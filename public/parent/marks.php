@@ -10,7 +10,7 @@
  *   - Grade boundaries reference
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -26,7 +26,7 @@ $user = Auth::user();
 $children = UserModel::getLinkedStudents($user['id']);
 
 if (empty($children)) {
-    header('Location: ' . BASE_URL . '/public/parent/dashboard.php');
+    header('Location: ' . BASE_URL . '/parent/dashboard');
     exit;
 }
 
@@ -324,18 +324,18 @@ $pageTitle = "{$firstName}'s Marks";
 </div><!-- /layout -->
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/parent/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/parent/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/parent/attendance.php?student_id=<?= $child['id'] ?>"
+  <a href="<?= BASE_URL ?>/parent/attendance?student_id=<?= $child['id'] ?>"
      class="mobile-nav-item">
     <span class="nav-icon">📋</span><span>Attendance</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/parent/marks.php?student_id=<?= $child['id'] ?>"
+  <a href="<?= BASE_URL ?>/parent/marks?student_id=<?= $child['id'] ?>"
      class="mobile-nav-item active">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/parent/profile.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/parent/profile" class="mobile-nav-item">
     <span class="nav-icon">👤</span><span>Profile</span>
   </a>
 </nav>

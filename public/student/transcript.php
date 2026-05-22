@@ -8,7 +8,7 @@
  *   - PDF download link
  */
 
-define('EDUTRACK_LOADED', true);
+defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
@@ -204,16 +204,16 @@ $pageTitle = 'My Transcript';
 </div><!-- /layout -->
 
 <nav class="mobile-nav">
-  <a href="<?= BASE_URL ?>/public/student/dashboard.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/scan.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/scan" class="mobile-nav-item">
     <span class="nav-icon">📷</span><span>Scan</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/attendance.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/student/attendance" class="mobile-nav-item">
     <span class="nav-icon">📋</span><span>Attendance</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/student/marks.php" class="mobile-nav-item active">
+  <a href="<?= BASE_URL ?>/student/marks" class="mobile-nav-item active">
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
 </nav>

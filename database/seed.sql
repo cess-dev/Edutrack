@@ -215,7 +215,7 @@ VALUES
 ('school_name',             'Your School Name',
     'Displayed on reports, portals, and email headers'),
 
-('academic_year',           '2024/2025',
+('academic_year',           '2026/2027',
     'Currently active academic year'),
 
 ('active_semester',         '1',

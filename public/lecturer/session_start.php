@@ -240,7 +240,7 @@ async function startSession() {
 
       closeModal();
 
-      window.location.href = `${BASE_URL}/public/lecturer/session_live.php?id=${data.session_id}`;
+      window.location.href = `${BASE_URL}/lecturer/session/live?id=${data.session_id}`;
     } catch (err) {
       Api.showError(err);
     }

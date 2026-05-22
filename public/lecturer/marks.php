@@ -423,10 +423,27 @@ $pageTitle = 'Marks Management';
           <label class="form-label">
             Student <span class="required">*</span>
           </label>
+          <input type="text" id="student-search" class="form-control"
+                 placeholder="Search by reg number or name..." 
+                 autocomplete="off"
+                 style="margin-bottom:var(--space-2)">
+          
+          <!-- Live search results -->
+          <div id="search-results" 
+               style="display:none;
+                      background:white;
+                      border:1px solid var(--color-border);
+                      border-radius:var(--radius-md);
+                      max-height:200px;
+                      overflow-y:auto;
+                      margin-bottom:var(--space-2);
+                      box-shadow:0 4px 6px rgba(0,0,0,0.1)">
+          </div>
+
           <select id="single-student" class="form-control">
-            <option value="">— Select student —</option>
+            <option value="">— Or select from list below —</option>
             <?php foreach ($enrolledStudents as $s): ?>
-              <option value="<?= $s['id'] ?>">
+              <option value="<?= $s['id'] ?>" data-reg="<?= htmlspecialchars($s['reg_number']) ?>" data-name="<?= htmlspecialchars($s['full_name']) ?>">
                 <?= htmlspecialchars($s['reg_number']) ?> —
                 <?= htmlspecialchars($s['full_name']) ?>
               </option>
@@ -560,6 +577,13 @@ function openUploadModal(assessmentId, name, maxScore) {
   document.querySelector('#upload-modal [data-error-container]').textContent = '';
   document.querySelector('#upload-modal [data-error-container]').hidden = true;
 
+  // Reset search and form
+  document.getElementById('student-search').value = '';
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('search-results').innerHTML = '';
+  document.getElementById('single-student').value = '';
+  document.getElementById('single-score').value = '';
+
   switchUploadTab('single');
   document.getElementById('upload-modal').hidden = false;
   document.body.style.overflow = 'hidden';
@@ -581,7 +605,106 @@ function switchUploadTab(mode) {
     'btn btn-sm ' + (mode === 'bulk' ? 'btn-primary' : 'btn-secondary');
   document.getElementById('upload-btn').textContent =
     mode === 'single' ? 'Save Mark' : 'Upload CSV';
+
+  // Reset search when switching to single tab
+  if (mode === 'single') {
+    setTimeout(() => {
+      document.getElementById('student-search').value = '';
+      document.getElementById('search-results').style.display = 'none';
+      document.getElementById('search-results').innerHTML = '';
+      document.getElementById('student-search').focus();
+    }, 0);
+  }
 }
+
+// ── Live student search with autocomplete ──────────────────────────────────────
+function showSearchResults(query) {
+  const resultsContainer = document.getElementById('search-results');
+  const q = query.toLowerCase().trim();
+
+  if (!q) {
+    resultsContainer.style.display = 'none';
+    resultsContainer.innerHTML = '';
+    return;
+  }
+
+  // Get all enrolled students and filter
+  const allOptions = document.querySelectorAll('#single-student option');
+  const filtered = [];
+
+  allOptions.forEach((opt, idx) => {
+    if (idx === 0) return; // Skip placeholder
+    const reg = opt.dataset.reg?.toLowerCase() || '';
+    const name = opt.dataset.name?.toLowerCase() || '';
+    
+    if (reg.includes(q) || name.includes(q)) {
+      filtered.push({
+        id: opt.value,
+        reg: opt.dataset.reg,
+        name: opt.dataset.name
+      });
+    }
+  });
+
+  if (filtered.length === 0) {
+    resultsContainer.innerHTML = '<div style="padding:var(--space-3);text-align:center;color:var(--color-text-muted);font-size:var(--text-sm)">No students found</div>';
+    resultsContainer.style.display = 'block';
+    return;
+  }
+
+  // Render results
+  const html = filtered.map(s =>
+    `<div class="search-result-item" onclick="selectStudentFromSearch(${s.id}, '${escHtml(s.reg)}', '${escHtml(s.name)}')"
+          style="padding:var(--space-3);cursor:pointer;border-bottom:1px solid var(--color-border-light);
+                  transition:background var(--transition-fast);display:flex;justify-content:space-between;align-items:center"
+          onmouseover="this.style.background='var(--color-accent-light)'"
+          onmouseout="this.style.background='white'">
+      <div>
+        <div class="font-mono text-sm font-medium">${escHtml(s.reg)}</div>
+        <div class="text-sm text-muted">${escHtml(s.name)}</div>
+      </div>
+      <span style="color:var(--color-accent);font-size:var(--text-xs)">Select →</span>
+    </div>`
+  ).join('');
+
+  resultsContainer.innerHTML = html;
+  resultsContainer.style.display = 'block';
+}
+
+function selectStudentFromSearch(studentId, reg, name) {
+  document.getElementById('single-student').value = studentId;
+  document.getElementById('student-search').value = `${reg} — ${name}`;
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('search-results').innerHTML = '';
+  document.getElementById('single-score').focus();
+}
+
+// Add search listener
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('student-search');
+  const resultsContainer = document.getElementById('search-results');
+  
+  if (searchInput) {
+    // Show results as they type
+    searchInput.addEventListener('input', (e) => {
+      showSearchResults(e.target.value);
+    });
+
+    // Close results when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+        resultsContainer.style.display = 'none';
+      }
+    });
+
+    // Show results on focus if there's already input
+    searchInput.addEventListener('focus', () => {
+      if (searchInput.value.trim()) {
+        showSearchResults(searchInput.value);
+      }
+    });
+  }
+});
 
 function onFileSelect(input) {
   const name = input.files[0]?.name || '';

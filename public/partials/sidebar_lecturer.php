@@ -90,11 +90,6 @@ $pendingDisputes = (int)(DB::row(
       <span>Analytics</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/lecturer/reports.php"
-       class="nav-item <?= navActive('reports.php', $currentPage) ?>">
-      <span class="nav-icon">🖨️</span>
-      <span>Export Reports</span>
-    </a>
 
     <div class="nav-section-label">Account</div>
 

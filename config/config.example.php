@@ -63,10 +63,10 @@ define('APP_NAME', 'EduTrack');
 define('SCHOOL_NAME', 'Your School Name');
 
 /** Current academic year label — update each year */
-define('ACADEMIC_YEAR', '2026/2027');
+define('ACADEMIC_YEAR', '2025/2026');
 
 /** Active semester: 1 or 2 */
-define('ACTIVE_SEMESTER', 1);
+define('ACTIVE_SEMESTER', 2);
 
 /**
  * Application environment.

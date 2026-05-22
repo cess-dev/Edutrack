@@ -59,6 +59,8 @@ if ($selectedUnitId > 0) {
     if ($selectedUnit) {
         $assessments = MarksModel::getUnitAssessments($selectedUnitId, false);
         $markSheet   = MarksModel::getUnitMarksSheet($selectedUnitId, $academicYear, $semester);
+        $markSheetStudentCount = count($markSheet['students']);
+        $displayStudents = array_slice($markSheet['students'], 0, 3);
     }
 }
 
@@ -244,14 +246,20 @@ $pageTitle = 'Marks Management';
             <div>
               <div class="card-title">Class Mark Sheet</div>
               <div class="card-subtitle">
-                <?= count($markSheet['students']) ?> students ·
+                Showing <?= count($displayStudents) ?> of <?= $markSheetStudentCount ?> students ·
                 <?= count($markSheet['assessments']) ?> assessments
               </div>
             </div>
-            <a href="<?= BASE_URL ?>/api/reports/marks_sheet.php?unit_id=<?= $selectedUnitId ?>"
-               class="btn btn-secondary btn-sm" target="_blank">
-              🖨️ Export PDF
-            </a>
+            <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center">
+              <a href="<?= BASE_URL ?>/public/lecturer/marksheet.php?unit_id=<?= $selectedUnitId ?>"
+                 class="btn btn-outline btn-sm">
+                View all
+              </a>
+              <a href="<?= BASE_URL ?>/api/reports/marks_sheet.php?unit_id=<?= $selectedUnitId ?>"
+                 class="btn btn-secondary btn-sm" target="_blank">
+                🖨️ Export PDF
+              </a>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="table">
@@ -272,7 +280,7 @@ $pageTitle = 'Marks Management';
                 </tr>
               </thead>
               <tbody>
-                <?php foreach ($markSheet['students'] as $s): ?>
+                <?php foreach ($displayStudents as $s): ?>
                 <tr>
                   <td class="font-mono text-xs"><?= htmlspecialchars($s['reg_number']) ?></td>
                   <td class="text-sm"><?= htmlspecialchars($s['full_name']) ?></td>

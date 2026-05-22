@@ -248,7 +248,7 @@ $pageTitle = 'Marks Management';
                 <?= count($markSheet['assessments']) ?> assessments
               </div>
             </div>
-            <a href="<?= BASE_URL ?>/api/reports/class_report.php?unit_id=<?= $selectedUnitId ?>"
+            <a href="<?= BASE_URL ?>/api/reports/marks_sheet.php?unit_id=<?= $selectedUnitId ?>"
                class="btn btn-secondary btn-sm" target="_blank">
               🖨️ Export PDF
             </a>

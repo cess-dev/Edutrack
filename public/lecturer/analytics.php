@@ -102,6 +102,42 @@ $pageTitle = 'Analytics';
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/lecturer.css">
   <script src="<?= BASE_URL ?>/public/assets/vendor/chart.min.js"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .analytics-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      align-items: center;
+      margin-bottom: var(--space-6);
+    }
+    .analytics-nav-label {
+      font-weight: var(--weight-semibold);
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+    }
+    .analytics-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    .analytics-link {
+      color: var(--color-text);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 2px;
+      transition: color var(--transition-fast), border-color var(--transition-fast);
+      font-size: var(--text-sm);
+    }
+    .analytics-link:hover {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    .analytics-link.active {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+  </style>
 </head>
 <body>
 <div class="layout">
@@ -121,7 +157,21 @@ $pageTitle = 'Analytics';
 
     <div class="page-content">
 
-      <?php if (empty($units)): ?>
+      <?php if (!empty($units)): ?>
+        <div class="analytics-nav animate-fade-in">
+          <span class="analytics-nav-label">Jump to:</span>
+          <div class="analytics-links">
+            <?php foreach ($units as $unit): ?>
+              <a href="#unit-<?= $unit['id'] ?>"
+                 class="analytics-link">
+                <?= htmlspecialchars($unit['name']) ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php if (empty($units)): ?> 
         <div class="empty-state animate-fade-in">
           <span class="empty-icon">📊</span>
           <p class="empty-title">No units assigned</p>
@@ -144,7 +194,7 @@ $pageTitle = 'Analytics';
           $distValues  = array_values($data['dist']);
           $distColors  = ['#0F7B6C', '#1A3C5E', '#C47B12', '#D85A30'];
         ?>
-          <div class="card animate-fade-in"
+          <div id="unit-<?= $unit['id'] ?>" class="card animate-fade-in"
                style="margin-bottom:var(--space-6)">
 
             <!-- Unit header -->
@@ -383,6 +433,59 @@ $pageTitle = 'Analytics';
 
         <?php endforeach; ?>
       <?php endif; ?>
+
+      <script>
+      (function() {
+        const links = Array.from(document.querySelectorAll('.analytics-link'));
+        const sections = links
+          .map(link => document.querySelector(link.getAttribute('href')))
+          .filter(Boolean);
+
+        if (!sections.length) {
+          return;
+        }
+
+        const setActiveLink = (id) => {
+          links.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+          });
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+          const visible = entries
+            .filter(entry => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+          if (visible.length > 0) {
+            setActiveLink(visible[0].target.id);
+          }
+        }, {
+          rootMargin: '-20% 0px -60% 0px',
+          threshold: [0.1, 0.3, 0.5, 0.8]
+        });
+
+        sections.forEach(section => observer.observe(section));
+
+        links.forEach(link => {
+          link.addEventListener('click', function(event) {
+            event.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setActiveLink(target.id);
+            history.replaceState(null, '', this.getAttribute('href'));
+          });
+        });
+
+        const initialHash = window.location.hash;
+        if (initialHash) {
+          const initialLink = links.find(link => link.getAttribute('href') === initialHash);
+          if (initialLink) {
+            setActiveLink(initialHash.substring(1));
+          }
+        }
+      })();
+      </script>
 
     </div><!-- /page-content -->
   </div><!-- /main -->

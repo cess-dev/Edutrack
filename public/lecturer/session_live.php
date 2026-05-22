@@ -31,17 +31,17 @@ if ($sessionId <= 0) {
 
 // Fetch session — must belong to this lecturer
 $session = DB::row(
-    "SELECT s.id, s.session_token, s.expires_at, s.is_active, s.note,
-            s.academic_year, s.semester,
-            u.id   AS unit_id,
-            u.code AS unit_code,
-            u.name AS unit_name,
-            c.name AS course_name
-     FROM attendance_sessions s
-     JOIN units u   ON u.id  = s.unit_id
-     JOIN courses c ON c.id  = u.course_id
-     WHERE s.id = ? AND s.lecturer_id = ?",
-    [$sessionId, $user['id']]
+  "SELECT s.id, s.session_token, s.expires_at, s.is_active, s.note, s.closed_at,
+      s.academic_year, s.semester,
+      u.id   AS unit_id,
+      u.code AS unit_code,
+      u.name AS unit_name,
+      c.name AS course_name
+   FROM attendance_sessions s
+   JOIN units u   ON u.id  = s.unit_id
+   JOIN courses c ON c.id  = u.course_id
+   WHERE s.id = ? AND s.lecturer_id = ?",
+  [$sessionId, $user['id']]
 );
 
 if (!$session) {

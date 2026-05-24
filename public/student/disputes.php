@@ -144,17 +144,17 @@ $pageTitle = 'Attendance Disputes';
               Select an absent session within the dispute window to request review.
             </p>
           </div>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:0.75rem;">
-            <?php if (!empty($eligibleSessions)): ?>
-              <button type="button" class="btn btn-primary btn-sm" onclick="openFirstDisputeModal()">
-                Add New Dispute
-              </button>
-            <?php else: ?>
-              <button type="button" class="btn btn-secondary btn-sm" disabled>
-                No eligible sessions
-              </button>
-            <?php endif; ?>
-          </div>
+        </div>
+        <div class="card-toolbar" style="display:flex;justify-content:flex-end;gap:0.75rem;margin:0 0 var(--space-5);padding-bottom:var(--space-3);border-bottom:1px solid var(--color-border-light);">
+          <?php if (!empty($eligibleSessions)): ?>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openFirstDisputeModal()">
+              Add New Dispute
+            </button>
+          <?php else: ?>
+            <button type="button" class="btn btn-secondary btn-sm" disabled>
+              No eligible sessions
+            </button>
+          <?php endif; ?>
         </div>
 
         <?php if (empty($eligibleSessions)): ?>

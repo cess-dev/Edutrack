@@ -28,6 +28,7 @@ $routes = [
     'student/dashboard'      => 'student/dashboard.php',
     'student/marks'          => 'student/marks.php',
     'student/attendance'     => 'student/attendance.php',
+    'student/disputes'       => 'student/disputes.php',
     'student/transcript'     => 'student/transcript.php',
     'student/scan'           => 'student/scan.php',
     'student/profile'        => 'student/profile.php',

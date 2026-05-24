@@ -145,6 +145,43 @@ $pageTitle = 'My Attendance';
       <!-- Unit summary cards -->
       <?php if (!empty($summary)): ?>
         <div class="grid-stats animate-fade-in" style="margin-bottom:var(--space-6)">
+          <?php
+            $overallAttended = array_sum(array_column($summary, 'attended'));
+            $overallTotal    = array_sum(array_column($summary, 'total_sessions'));
+            $overallPct      = $overallTotal > 0 ? round($overallAttended / $overallTotal * 100, 1) : null;
+            $overallCol      = $overallPct >= $threshold
+                ? 'var(--color-success)'
+                : ($overallPct >= 60 ? 'var(--color-amber)' : 'var(--color-error)');
+            $overallBg       = $overallPct >= $threshold
+                ? 'var(--color-success-light)'
+                : ($overallPct >= 60 ? 'var(--color-amber-light)' : 'var(--color-error-light)');
+            $overallQs       = http_build_query(array_filter([
+                'status'  => $filterStatus !== 'all' ? $filterStatus : null,
+            ]));
+          ?>
+            <a href="?<?= $overallQs ?>" class="stat-card"
+               style="text-decoration:none;<?= $filterUnit === 0 ? 'border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(15,123,108,0.12);' : '' ?>">
+              <div class="stat-icon" style="background:<?= $overallBg ?>;color:<?= $overallCol ?>">
+                📊
+              </div>
+              <div class="stat-body">
+                <div class="stat-value" style="font-size:var(--text-2xl);color:<?= $overallCol ?>">
+                  <?= $overallPct !== null ? $overallPct . '%' : 'N/A' ?>
+                </div>
+                <div class="stat-label font-mono" style="font-size:var(--text-xs)">
+                  Overall
+                </div>
+                <div class="text-xs text-muted">
+                  <?= $overallAttended ?>/<?= $overallTotal ?> sessions
+                </div>
+                <?php if ($overallPct !== null && $overallPct < $threshold): ?>
+                  <div class="text-xs" style="color:var(--color-error);margin-top:2px">
+                    ⚠ Below <?= $threshold ?>% threshold
+                  </div>
+                <?php endif; ?>
+              </div>
+            </a>
+
           <?php foreach ($summary as $unit):
             $pct    = (float)$unit['attendance_percent'];
             $status = $pct >= $threshold ? 'high' : ($pct >= 60 ? 'medium' : 'low');
@@ -182,17 +219,6 @@ $pageTitle = 'My Attendance';
               </div>
             </a>
           <?php endforeach; ?>
-
-          <?php if ($filterUnit > 0): ?>
-            <a href="?" class="stat-card"
-               style="text-decoration:none;justify-content:center;
-                      border-style:dashed;color:var(--color-text-muted)">
-              <div style="text-align:center">
-                <div style="font-size:1.5rem">✕</div>
-                <div class="text-xs">Clear filter</div>
-              </div>
-            </a>
-          <?php endif; ?>
         </div>
       <?php endif; ?>
 
@@ -236,6 +262,12 @@ $pageTitle = 'My Attendance';
         <span class="text-sm text-muted" style="margin-left:auto">
           <?= $totalRows ?> record<?= $totalRows !== 1 ? 's' : '' ?>
         </span>
+      </div>
+
+      <div class="alert alert-info" style="margin:var(--space-4) 0">
+        Attendance disputes are managed on the
+        <a href="<?= BASE_URL ?>/student/disputes" class="link">Disputes page</a>.
+        Use that page to submit or review dispute requests.
       </div>
 
       <!-- Attendance log -->
@@ -321,15 +353,10 @@ $pageTitle = 'My Attendance';
                         </span>
 
                       <?php elseif ($canDispute): ?>
-                        <!-- Eligible to dispute -->
-                        <button class="btn btn-secondary btn-sm"
-                                onclick="openDisputeModal(
-                                  <?= $log['session_id'] ?>,
-                                  '<?= htmlspecialchars($log['unit_code'], ENT_QUOTES) ?>',
-                                  '<?= date('d M Y', strtotime($log['started_at'])) ?>'
-                                )">
-                          Submit Dispute
-                        </button>
+                        <a href="<?= BASE_URL ?>/student/disputes"
+                           class="btn btn-secondary btn-sm">
+                          Raise Dispute
+                        </a>
 
                       <?php elseif ($log['status'] === 'absent'): ?>
                         <!-- Window closed -->
@@ -338,6 +365,7 @@ $pageTitle = 'My Attendance';
                       <?php else: ?>
                         <span class="text-muted text-xs">—</span>
                       <?php endif; ?>
+
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -381,56 +409,6 @@ $pageTitle = 'My Attendance';
   </div><!-- /main -->
 </div><!-- /layout -->
 
-
-<!-- ── Dispute Modal ──────────────────────────────────────────────────────── -->
-<div class="modal-backdrop" id="dispute-modal"
-     hidden
-     style="position:fixed;inset:0;background:rgba(14,42,66,0.55);
-            backdrop-filter:blur(2px);z-index:200;display:flex;
-            align-items:center;justify-content:center;padding:var(--space-4)">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
-      <h2 class="modal-title">Submit Attendance Dispute</h2>
-      <button class="modal-close" onclick="closeDisputeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="alert alert-info" style="margin-bottom:var(--space-4)">
-        <span class="alert-icon">ℹ</span>
-        <div>
-          Disputing attendance for
-          <strong id="dispute-context"></strong>.
-          Your lecturer will review your reason and approve or reject it.
-        </div>
-      </div>
-
-      <div data-error-container class="alert alert-error"
-           style="margin-bottom:var(--space-4)"></div>
-
-      <div class="form-group">
-        <label class="form-label" for="dispute-reason">
-          Your Reason <span class="required">*</span>
-        </label>
-        <textarea id="dispute-reason"
-                  class="form-control"
-                  rows="4"
-                  placeholder="Explain why you believe you were present for this session..."
-                  style="resize:vertical"></textarea>
-        <div class="form-hint">
-          Be specific — mention any evidence (e.g. sat near the door,
-          technical issue with phone camera, etc.)
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeDisputeModal()">Cancel</button>
-      <button class="btn btn-primary" id="dispute-submit-btn"
-              onclick="submitDispute()">
-        Submit Dispute
-      </button>
-    </div>
-  </div>
-</div>
-
 <nav class="mobile-nav">
   <a href="<?= BASE_URL ?>/student/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
@@ -445,75 +423,6 @@ $pageTitle = 'My Attendance';
     <span class="nav-icon">📝</span><span>Marks</span>
   </a>
 </nav>
-
-<script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
-<script>
-const BASE_URL = <?= json_encode(BASE_URL) ?>;
-let activeSessionId = null;
-
-// ── Dispute modal ─────────────────────────────────────────────────────────────
-function openDisputeModal(sessionId, unitCode, sessionDate) {
-  activeSessionId = sessionId;
-  document.getElementById('dispute-context').textContent =
-    `${unitCode} on ${sessionDate}`;
-  document.getElementById('dispute-reason').value = '';
-  const errEl = document.querySelector('#dispute-modal [data-error-container]');
-  errEl.textContent = ''; errEl.hidden = true;
-
-  document.getElementById('dispute-modal').hidden = false;
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('dispute-reason').focus(), 100);
-}
-
-function closeDisputeModal() {
-  document.getElementById('dispute-modal').hidden = true;
-  document.body.style.overflow = '';
-  activeSessionId = null;
-}
-
-document.getElementById('dispute-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeDisputeModal();
-});
-
-async function submitDispute() {
-  const reason = document.getElementById('dispute-reason').value.trim();
-  const btn    = document.getElementById('dispute-submit-btn');
-  const errEl  = document.querySelector('#dispute-modal [data-error-container]');
-
-  errEl.textContent = ''; errEl.hidden = true;
-
-  if (!reason) {
-    errEl.textContent = 'Please enter a reason for the dispute.';
-    errEl.hidden = false;
-    return;
-  }
-
-  if (reason.length < 20) {
-    errEl.textContent = 'Please provide a more detailed reason (at least 20 characters).';
-    errEl.hidden = false;
-    return;
-  }
-
-  await Api.withLoading(btn, async () => {
-    try {
-      const data = await Api.post(`${BASE_URL}/api/attendance/dispute_submit.php`, {
-        session_id: activeSessionId,
-        reason:     reason,
-      });
-
-      Toast.show('success', data.message);
-      closeDisputeModal();
-
-      // Reload page to reflect new dispute status in the table
-      setTimeout(() => window.location.reload(), 1000);
-
-    } catch (err) {
-      errEl.textContent = err.message;
-      errEl.hidden = false;
-    }
-  });
-}
-</script>
 
 </body>
 </html>

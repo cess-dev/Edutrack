@@ -162,6 +162,7 @@ class AttendanceModel
     ): array {
         return DB::rows(
             "SELECT
+                unit_id,
                 unit_code,
                 unit_name,
                 total_sessions,

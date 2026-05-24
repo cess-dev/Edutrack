@@ -53,7 +53,7 @@ $studentPendingDisputes = (int)(DB::row(
       <span>My Attendance</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/student/disputes.php"
+    <a href="<?= BASE_URL ?>/student/disputes"
        class="nav-item <?= studentNavActive('disputes.php', $currentPage) ?>">
       <span class="nav-icon">🔔</span>
       <span>Disputes</span>

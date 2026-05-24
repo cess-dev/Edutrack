@@ -76,7 +76,7 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
       <span>Marks</span>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/parent/transcript.php<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
+    <a href="<?= BASE_URL ?>/parent/transcript<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
        class="nav-item <?= parentNavActive('transcript.php', $currentPage) ?>">
       <span class="nav-icon">🎓</span>
       <span>Transcript</span>

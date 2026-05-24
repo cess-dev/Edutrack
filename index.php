@@ -60,6 +60,7 @@ $routes = [
     'parent/login'           => 'parent/login.php',
     'parent/dashboard'       => 'parent/dashboard.php',
     'parent/marks'           => 'parent/marks.php',
+    'parent/transcript'      => 'parent/transcript.php',
     'parent/attendance'      => 'parent/attendance.php',
     'parent/profile'         => 'parent/profile.php',
 

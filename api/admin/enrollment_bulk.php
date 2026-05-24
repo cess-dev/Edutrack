@@ -9,11 +9,13 @@
  * URL:     /api/admin/enrollment_bulk.php
  * Access:  Admin only
  *
- * Request body (JSON):
- *   student_id, course_id, year_of_study, academic_year, semester
+ * Request: multipart/form-data with a CSV upload.
+ *   course_id, year_of_study, academic_year, semester, csv_file
+ *
+ * The CSV must contain one student registration number per row.
  *
  * Success response (200):
- *   { "success": true, "enrolled": int, "skipped": int, "message": string }
+ *   { "success": true, "enrolled": int, "skipped": int, "invalid": int, "message": string }
  */
 
 defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
@@ -33,27 +35,28 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$body         = json_decode(file_get_contents('php://input'), true) ?? [];
-$studentId    = (int)($body['student_id']    ?? 0);
-$courseId     = (int)($body['course_id']     ?? 0);
-$year         = (int)($body['year_of_study'] ?? 0);
-$academicYear = trim($body['academic_year']  ?? '');
-$semester     = (int)($body['semester']      ?? 0);
+$courseId     = (int)($_POST['course_id']     ?? 0);
+$year         = (int)($_POST['year_of_study'] ?? 0);
+$academicYear = trim($_POST['academic_year']  ?? '');
+$semester     = (int)($_POST['semester']      ?? 0);
 
-if ($studentId <= 0 || $courseId <= 0 || $year <= 0 || empty($academicYear) || !in_array($semester,[1,2],true)) {
+if ($courseId <= 0 || $year <= 0 || empty($academicYear) || !in_array($semester,[1,2],true)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'All fields are required.']);
+    echo json_encode(['success' => false, 'message' => 'Course, year, semester and CSV file are required.']);
     exit;
 }
 
-// Verify student exists
-$student = DB::row(
-    "SELECT id, full_name FROM users WHERE id = ? AND role = 'student'",
-    [$studentId]
-);
-if (!$student) {
+if (empty($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Student not found.']);
+    echo json_encode(['success' => false, 'message' => 'CSV file upload failed.']);
+    exit;
+}
+
+$csvTmpPath = $_FILES['csv_file']['tmp_name'];
+
+if (!is_uploaded_file($csvTmpPath)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid CSV upload.']);
     exit;
 }
 
@@ -74,33 +77,65 @@ if (empty($targetUnits)) {
 
 $enrolled = 0;
 $skipped  = 0;
+$invalid  = 0;
+$rows     = 0;
+$seen     = [];
 
-foreach ($targetUnits as $unit) {
-    $result = UserModel::enrollStudent(
-        $studentId,
-        $unit['id'],
-        $academicYear,
-        $semester
-    );
-    if ($result['success']) {
-        $enrolled++;
-    } else {
-        $skipped++;
-    }
+if (($handle = fopen($csvTmpPath, 'r')) === false) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Unable to read uploaded CSV.']);
+    exit;
 }
 
-Auth::audit('bulk_enrollment', 'enrollments', $studentId, [
+while (($line = fgetcsv($handle)) !== false) {
+    $rows++;
+    $regNumber = trim($line[0] ?? '');
+    if ($regNumber === '') {
+        continue;
+    }
+
+    $regNumber = strtoupper($regNumber);
+    if (isset($seen[$regNumber])) {
+        continue;
+    }
+    $seen[$regNumber] = true;
+
+    $student = UserModel::findByRegNumber($regNumber);
+    if (!$student || $student['role'] !== 'student') {
+        $invalid++;
+        continue;
+    }
+
+    foreach ($targetUnits as $unit) {
+        $result = UserModel::enrollStudent(
+            $student['id'],
+            $unit['id'],
+            $academicYear,
+            $semester
+        );
+        if ($result['success']) {
+            $enrolled++;
+        } else {
+            $skipped++;
+        }
+    }
+}
+fclose($handle);
+
+Auth::audit('bulk_enrollment', 'enrollments', null, [
     'course_id'    => $courseId,
     'year'         => $year,
     'semester'     => $semester,
+    'rows'         => $rows,
     'enrolled'     => $enrolled,
     'skipped'      => $skipped,
+    'invalid'      => $invalid,
 ]);
 
 echo json_encode([
     'success'  => true,
     'enrolled' => $enrolled,
     'skipped'  => $skipped,
-    'message'  => "{$enrolled} unit(s) enrolled" .
-                  ($skipped ? ", {$skipped} already enrolled (skipped)." : '.'),
+    'invalid'  => $invalid,
+    'message'  => "Imported {$rows} rows: {$enrolled} enrollments created, {$skipped} skipped, {$invalid} invalid.",
 ]);

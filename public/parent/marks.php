@@ -74,7 +74,7 @@ $pageTitle = "{$firstName}'s Marks";
     <header class="topbar">
       <span class="topbar-title"><?= $firstName ?>'s Marks</span>
       <div class="topbar-actions">
-        <a href="<?= BASE_URL ?>/public/parent/transcript.php?student_id=<?= $child['id'] ?>"
+        <a href="<?= BASE_URL ?>/parent/transcript?student_id=<?= $child['id'] ?>"
            class="btn btn-secondary btn-sm">
           🎓 Transcript
         </a>

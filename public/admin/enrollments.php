@@ -366,7 +366,7 @@ $pageTitle = 'Enrollment Management';
 <div class="modal-backdrop" id="bulk-modal" hidden>
   <div class="modal">
     <div class="modal-header">
-      <h2 class="modal-title">Bulk Enroll by Course</h2>
+      <h2 class="modal-title">Bulk Enroll via CSV</h2>
       <button class="modal-close" onclick="closeModal('bulk-modal')">✕</button>
     </div>
     <div class="modal-body">
@@ -376,29 +376,9 @@ $pageTitle = 'Enrollment Management';
       <div class="alert alert-info" style="margin-bottom:var(--space-4)">
         <span class="alert-icon">ℹ</span>
         <div>
-          Enrolls a student in <strong>all active units</strong> for the
-          selected course year and semester. Existing enrollments are skipped.
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">
-          Student <span class="required">*</span>
-        </label>
-        <input type="text"
-               id="bk-student-search"
-               class="form-control"
-               placeholder="Type name or reg number..."
-               autocomplete="off"
-               oninput="searchBulkStudents(this.value)">
-        <div id="bk-student-results"
-             style="border:1px solid var(--color-border);border-top:none;
-                    border-radius:0 0 var(--radius-md) var(--radius-md);
-                    max-height:180px;overflow-y:auto;display:none;background:white">
-        </div>
-        <input type="hidden" id="bk-student-id">
-        <div id="bk-student-selected"
-             class="text-sm text-accent" style="margin-top:var(--space-2)">
+          Upload a CSV file with one student registration number per row.
+          The selected course, year and semester determine which units are enrolled.
+          Existing enrollments are skipped.
         </div>
       </div>
 
@@ -407,8 +387,7 @@ $pageTitle = 'Enrollment Management';
           <label class="form-label">
             Course <span class="required">*</span>
           </label>
-          <select id="bk-course" class="form-control"
-                  onchange="loadCourseYears(this.value)">
+          <select id="bk-course" class="form-control">
             <option value="">— Select course —</option>
             <?php foreach ($courses as $c): ?>
               <option value="<?= $c['id'] ?>">
@@ -428,6 +407,34 @@ $pageTitle = 'Enrollment Management';
             <?php endfor; ?>
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">
+            Semester <span class="required">*</span>
+          </label>
+          <select id="bk-semester" class="form-control">
+            <option value="">— Select semester —</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          CSV File <span class="required">*</span>
+        </label>
+        <input type="file" id="bk-csv" class="form-control" accept=".csv,text/csv">
+        <div class="text-xs text-muted" style="margin-top:var(--space-2)">
+          Use a CSV with a single column of student registration numbers.
+        </div>
+      </div>
+
+      <div class="alert alert-info" style="margin-top:var(--space-3)">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          Bulk enrollment is for many students at once. Use the single student form
+          when enrolling one student into one unit.
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -435,7 +442,7 @@ $pageTitle = 'Enrollment Management';
         Cancel
       </button>
       <button class="btn btn-primary" id="bulk-btn" onclick="bulkEnroll()">
-        Enroll in All Units
+        Upload CSV and Enroll
       </button>
     </div>
   </div>
@@ -508,9 +515,8 @@ function selectStudent(searchId, resultsId, hiddenId, selectedId, id, label) {
   document.getElementById(resultsId).style.display = 'none';
 }
 
-// Wire up both search inputs
+// Wire up student search input
 makeStudentSearch('en-student-search','en-student-results','en-student-id','en-student-selected');
-makeStudentSearch('bk-student-search','bk-student-results','bk-student-id','bk-student-selected');
 
 // ── Open modals ───────────────────────────────────────────────────────────────
 function openEnrollModal() {
@@ -528,15 +534,12 @@ function openEnrollModal() {
 
 function openBulkModal() {
   clearErr('bulk');
-  ['bk-student-search','bk-student-id'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.value='';
-  });
-  document.getElementById('bk-student-selected').textContent = '';
-  document.getElementById('bk-student-results').style.display = 'none';
   document.getElementById('bk-course').value = '';
   document.getElementById('bk-year').value   = '';
+  document.getElementById('bk-semester').value = '';
+  document.getElementById('bk-csv').value    = null;
   openModal('bulk-modal');
-  setTimeout(() => document.getElementById('bk-student-search').focus(), 100);
+  setTimeout(() => document.getElementById('bk-course').focus(), 100);
 }
 
 // ── Enroll single ─────────────────────────────────────────────────────────────
@@ -567,24 +570,27 @@ async function enrollStudent() {
 // ── Bulk enroll ───────────────────────────────────────────────────────────────
 async function bulkEnroll() {
   clearErr('bulk');
-  const studentId = document.getElementById('bk-student-id').value;
-  const courseId  = document.getElementById('bk-course').value;
-  const year      = document.getElementById('bk-year').value;
-  const btn       = document.getElementById('bulk-btn');
+  const courseId = document.getElementById('bk-course').value;
+  const year     = document.getElementById('bk-year').value;
+  const semester = document.getElementById('bk-semester').value;
+  const csvFile  = document.getElementById('bk-csv').files[0];
+  const btn      = document.getElementById('bulk-btn');
 
-  if (!studentId) { setErr('bulk','Please select a student.'); return; }
   if (!courseId)  { setErr('bulk','Please select a course.');  return; }
   if (!year)      { setErr('bulk','Please select a year.');    return; }
+  if (!semester)  { setErr('bulk','Please select a semester.'); return; }
+  if (!csvFile)   { setErr('bulk','Please upload a CSV file.'); return; }
+
+  const formData = new FormData();
+  formData.append('course_id', courseId);
+  formData.append('year_of_study', year);
+  formData.append('academic_year', ACAD_YEAR);
+  formData.append('semester', semester);
+  formData.append('csv_file', csvFile);
 
   await Api.withLoading(btn, async () => {
     try {
-      const data = await Api.post(`${BASE_URL}/api/admin/enrollment_bulk.php`, {
-        student_id:    parseInt(studentId),
-        course_id:     parseInt(courseId),
-        year_of_study: parseInt(year),
-        academic_year: ACAD_YEAR,
-        semester:      parseInt(SEMESTER),
-      });
+      const data = await Api.upload(`${BASE_URL}/api/admin/enrollment_bulk.php`, formData);
       Toast.show('success', data.message);
       closeModal('bulk-modal');
       setTimeout(() => window.location.reload(), 700);

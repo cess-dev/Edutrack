@@ -405,7 +405,7 @@ $schoolName = DB::row(
                 <span>📝</span>
                 <span>All Marks</span>
               </a>
-              <a href="<?= BASE_URL ?>/public/parent/transcript.php?student_id=<?= $child['id'] ?>"
+              <a href="<?= BASE_URL ?>/parent/transcript?student_id=<?= $child['id'] ?>"
                  class="quick-action-btn">
                 <span>🎓</span>
                 <span>Transcript</span>

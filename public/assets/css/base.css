@@ -156,8 +156,28 @@ html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
-  overflow-y: overlay;
+  height: 100%;
+  overflow-y: scroll;
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.25) transparent;
+}
+
+html::-webkit-scrollbar {
+  width: 10px;
+}
+
+html::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.04);
+}
+
+html::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.25);
+  border-radius: 5px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.35);
 }
 
 body {
@@ -168,14 +188,66 @@ body {
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  height: 100%;
+  min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  cursor: default;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.25) transparent;
+}
+
+body::-webkit-scrollbar {
+  width: 10px;
+}
+
+body::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.04);
+}
+
+body::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.25);
+  border-radius: 5px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.35);
 }
 
 img,
 video {
   max-width: 100%;
   display: block;
+}
+
+/* Allow text selection only when explicitly enabled */
+.selectable-text {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+/* Interactive elements get pointer cursor */
+button, a, input[type="button"], input[type="submit"], 
+input[type="reset"], [role="button"], .nav-item, .btn {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Text input elements get text cursor */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="search"], textarea, [contenteditable="true"],
+input[type="number"], input[type="tel"], input[type="url"] {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 
 a {
@@ -277,7 +349,7 @@ p:last-child { margin-bottom: 0; }
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-width);
-  min-height: 100vh;
+  height: 100vh;
   background: var(--color-nav-bg);
   display: flex;
   flex-direction: column;
@@ -330,6 +402,12 @@ p:last-child { margin-bottom: 0; }
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-section-label {

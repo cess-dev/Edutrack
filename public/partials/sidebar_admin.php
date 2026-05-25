@@ -4,10 +4,12 @@
  * Included by every admin portal page.
  */
 
-$currentPage = basename($_SERVER['SCRIPT_FILENAME']);
+$requestPath = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+$requestPath = preg_replace('#^edutrack/?#', '', $requestPath);
+$currentPage = basename($requestPath) ?: basename($_SERVER['SCRIPT_FILENAME']);
 
-function adminNavActive(string $file, string $current): string {
-    return $current === $file ? 'active' : '';
+function adminNavActive(string $route, string $current): string {
+    return $current === $route ? 'active' : '';
 }
 
 $pendingDisputes = (int)(DB::row(
@@ -32,7 +34,7 @@ $activeSessions = (int)(DB::row(
     <div class="nav-section-label">Overview</div>
 
     <a href="<?= BASE_URL ?>/admin/dashboard"
-       class="nav-item <?= adminNavActive('dashboard.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('dashboard', $currentPage) ?>">
       <span class="nav-icon">🏠</span>
       <span>Dashboard</span>
     </a>
@@ -40,13 +42,13 @@ $activeSessions = (int)(DB::row(
     <div class="nav-section-label">Users</div>
 
     <a href="<?= BASE_URL ?>/admin/users"
-       class="nav-item <?= adminNavActive('users.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('users', $currentPage) ?>">
       <span class="nav-icon">👥</span>
       <span>All Users</span>
     </a>
 
     <a href="<?= BASE_URL ?>/admin/enrollments"
-       class="nav-item <?= adminNavActive('enrollments.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('enrollments', $currentPage) ?>">
       <span class="nav-icon">📋</span>
       <span>Enrollments</span>
     </a>
@@ -54,15 +56,15 @@ $activeSessions = (int)(DB::row(
     <div class="nav-section-label">Academic</div>
 
     <a href="<?= BASE_URL ?>/admin/courses"
-       class="nav-item <?= adminNavActive('courses.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('courses', $currentPage) ?>">
       <span class="nav-icon">📚</span>
       <span>Courses &amp; Units</span>
     </a>
 
     <div class="nav-section-label">Monitoring</div>
 
-    <a href="<?= BASE_URL ?>/public/admin/attendance.php"
-       class="nav-item <?= adminNavActive('attendance.php', $currentPage) ?>">
+    <a href="<?= BASE_URL ?>/admin/attendance"
+       class="nav-item <?= adminNavActive('attendance', $currentPage) ?>">
       <span class="nav-icon">📊</span>
       <span>Attendance Overview</span>
       <?php if ($activeSessions > 0): ?>
@@ -70,8 +72,8 @@ $activeSessions = (int)(DB::row(
       <?php endif; ?>
     </a>
 
-    <a href="<?= BASE_URL ?>/public/admin/disputes.php"
-       class="nav-item <?= adminNavActive('disputes.php', $currentPage) ?>">
+    <a href="<?= BASE_URL ?>/admin/disputes"
+       class="nav-item <?= adminNavActive('disputes', $currentPage) ?>">
       <span class="nav-icon">⚠️</span>
       <span>Disputes</span>
       <?php if ($pendingDisputes > 0): ?>
@@ -82,19 +84,19 @@ $activeSessions = (int)(DB::row(
     <div class="nav-section-label">System</div>
 
     <a href="<?= BASE_URL ?>/admin/settings"
-       class="nav-item <?= adminNavActive('settings.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('settings', $currentPage) ?>">
       <span class="nav-icon">⚙️</span>
       <span>Settings</span>
     </a>
 
     <a href="<?= BASE_URL ?>/admin/reports"
-       class="nav-item <?= adminNavActive('reports.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('reports', $currentPage) ?>">
       <span class="nav-icon">🖨️</span>
       <span>Reports</span>
     </a>
 
     <a href="<?= BASE_URL ?>/admin/audit"
-       class="nav-item <?= adminNavActive('audit.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('audit', $currentPage) ?>">
       <span class="nav-icon">🔍</span>
       <span>Audit Log</span>
     </a>
@@ -102,7 +104,7 @@ $activeSessions = (int)(DB::row(
     <div class="nav-section-label">Account</div>
 
     <a href="<?= BASE_URL ?>/admin/profile"
-       class="nav-item <?= adminNavActive('profile.php', $currentPage) ?>">
+       class="nav-item <?= adminNavActive('profile', $currentPage) ?>">
       <span class="nav-icon">👤</span>
       <span>My Profile</span>
     </a>

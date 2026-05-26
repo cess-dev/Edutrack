@@ -209,14 +209,23 @@ class Auth
      * @param  string $plainPassword
      * @return bool
      */
-    public static function attempt(string $regNumber, string $plainPassword): bool
+    public static function attempt(string $identifier, string $plainPassword): bool
     {
+        $identifier = trim($identifier);
+
+        // Accept either a registration number or an email address.
+        // If the input passes PHP's email validation we query the email column;
+        // otherwise we fall back to reg_number. The column is chosen from a
+        // hard-coded whitelist so there is no SQL-injection risk.
+        $isEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false;
+        $column  = $isEmail ? 'email' : 'reg_number';
+
         $user = DB::row(
             "SELECT id, reg_number, full_name, email, phone, password_hash, role, is_active
              FROM users
-             WHERE reg_number = ?
+             WHERE {$column} = ?
              LIMIT 1",
-            [trim($regNumber)]
+            [$identifier]
         );
 
         if (!$user) {

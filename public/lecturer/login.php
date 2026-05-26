@@ -29,14 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_SERVER['HTTP_X_REQUESTED_W
     $password  = $_POST['password'] ?? '';
 
     if (empty($regNumber) || empty($password)) {
-        $error = 'Please enter your registration number and password.';
+        $error = 'Please enter your staff number (or email) and password.';
     } else {
         $ok = Auth::attempt($regNumber, $password);
         if ($ok) {
             header('Location: ' . BASE_URL . '/lecturer/dashboard');
             exit;
         } else {
-            $error = 'Invalid registration number or password.';
+            $error = 'Invalid credentials. Check your staff number or email and try again.';
         }
     }
 }
@@ -131,7 +131,7 @@ $schoolName = DB::row(
 
         <div class="form-group">
           <label class="form-label" for="reg_number">
-            Staff / Registration Number
+            Staff Number or Email
             <span class="required">*</span>
           </label>
           <input type="text"
@@ -139,9 +139,9 @@ $schoolName = DB::row(
                  name="reg_number"
                  class="form-control"
                  value="<?= htmlspecialchars($regNumber) ?>"
-                 placeholder="e.g. LEC001"
+                 placeholder="e.g. LEC001 or email@school.local"
                  autocomplete="username"
-                 autocapitalize="characters"
+                 autocapitalize="none"
                  required
                  autofocus>
         </div>

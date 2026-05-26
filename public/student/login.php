@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_SERVER['HTTP_X_REQUESTED_W
     $password  = $_POST['password'] ?? '';
 
     if (empty($regNumber) || empty($password)) {
-        $error = 'Please enter your registration number and password.';
+        $error = 'Please enter your registration number (or email) and password.';
     } else {
         if (Auth::attempt($regNumber, $password)) {
             header('Location: ' . BASE_URL . '/student/dashboard');
@@ -82,7 +82,7 @@ $schoolName = DB::row(
 
       <h2 class="login-heading">Student Sign In</h2>
       <p class="login-subheading text-muted">
-        Use your student registration number to sign in.
+        Sign in with your registration number or institutional email.
       </p>
 
       <?php if ($error): ?>
@@ -105,16 +105,16 @@ $schoolName = DB::row(
 
         <div class="form-group">
           <label class="form-label" for="reg_number">
-            Registration Number <span class="required">*</span>
+            Registration Number or Email <span class="required">*</span>
           </label>
           <input type="text"
                  id="reg_number"
                  name="reg_number"
                  class="form-control"
                  value="<?= htmlspecialchars($regNumber) ?>"
-                 placeholder="e.g. STU2024001"
+                 placeholder="e.g. STU2024001 or student@email.com"
                  autocomplete="username"
-                 autocapitalize="characters"
+                 autocapitalize="none"
                  required
                  autofocus>
         </div>

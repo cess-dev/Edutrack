@@ -19,13 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_SERVER['HTTP_X_REQUESTED_W
     $password  = $_POST['password'] ?? '';
 
     if (empty($regNumber) || empty($password)) {
-        $error = 'Please enter your account number and password.';
+        $error = 'Please enter your email (or account ID) and password.';
     } else {
         if (Auth::attempt($regNumber, $password)) {
             header('Location: ' . BASE_URL . '/parent/dashboard');
             exit;
         } else {
-            $error = 'Invalid account number or password.';
+            $error = 'Invalid credentials. Check your email or account ID and try again.';
         }
     }
 }
@@ -105,20 +105,20 @@ $schoolName = DB::row(
 
         <div class="form-group">
           <label class="form-label" for="reg_number">
-            Account Number <span class="required">*</span>
+            Email or Account ID <span class="required">*</span>
           </label>
           <input type="text"
                  id="reg_number"
                  name="reg_number"
                  class="form-control"
                  value="<?= htmlspecialchars($regNumber) ?>"
-                 placeholder="e.g. PAR001"
+                 placeholder="e.g. mary.kariuki@gmail.com or PAR001"
                  autocomplete="username"
-                 autocapitalize="characters"
+                 autocapitalize="none"
                  required
                  autofocus>
           <div class="form-hint">
-            Your account number was provided by the school administrator.
+            Use the email address you gave the school, or the account ID from your welcome letter.
           </div>
         </div>
 

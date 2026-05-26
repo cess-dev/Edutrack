@@ -310,24 +310,33 @@ $pageTitle = 'User Management';
         </div>
         <div class="form-group">
           <label class="form-label">
-            Reg. Number <span class="required">*</span>
-          </label>
-          <input type="text" id="c-reg" class="form-control"
-                 placeholder="e.g. LEC003"
-                 autocapitalize="characters">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">
             Role <span class="required">*</span>
           </label>
-          <select id="c-role" class="form-control">
+          <select id="c-role" class="form-control" onchange="onRoleChange()">
             <option value="student">Student</option>
             <option value="lecturer">Lecturer</option>
             <option value="parent">Parent</option>
             <option value="admin">Admin</option>
           </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">
+            Reg. Number <span class="required">*</span>
+          </label>
+          <div style="display:flex;gap:var(--space-2)">
+            <input type="text" id="c-reg" class="form-control"
+                   placeholder="e.g. STU2025001"
+                   autocapitalize="characters"
+                   style="flex:1">
+            <button type="button" id="c-reg-refresh"
+                    title="Suggest next number"
+                    onclick="suggestRegNumber()"
+                    class="btn btn-ghost btn-sm"
+                    style="flex-shrink:0;padding:0 var(--space-3)">🔄</button>
+          </div>
+          <div id="c-reg-hint" class="form-hint" style="margin-top:var(--space-1)"></div>
         </div>
         <div class="form-group">
           <label class="form-label">Phone</label>
@@ -340,6 +349,52 @@ $pageTitle = 'User Management';
         <input type="email" id="c-email" class="form-control"
                placeholder="user@school.local">
       </div>
+
+      <!-- ── Parent-student link (slides in when role = parent) ──────────── -->
+      <div id="c-parent-section" style="display:none">
+        <hr style="margin:var(--space-4) 0;border:none;
+                   border-top:1px solid var(--color-border-light)">
+        <p class="text-sm font-medium" style="margin-bottom:var(--space-3)">
+          🔗 Link to Student
+          <span class="text-muted" style="font-weight:normal">
+            — optional, can be done later via the 🔗 button
+          </span>
+        </p>
+        <div class="form-group">
+          <label class="form-label">Student</label>
+          <input type="text"
+                 id="c-student-search"
+                 class="form-control"
+                 placeholder="Type name or reg number to search…"
+                 autocomplete="off"
+                 oninput="searchStudentsCreate(this.value)">
+          <div id="c-student-results"
+               style="border:1px solid var(--color-border);
+                      border-top:none;
+                      border-radius:0 0 var(--radius-md) var(--radius-md);
+                      max-height:180px;overflow-y:auto;display:none;
+                      background:var(--color-bg)">
+          </div>
+          <input type="hidden" id="c-student-id">
+          <div id="c-student-selected"
+               class="text-sm"
+               style="margin-top:var(--space-2);color:var(--color-success)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Relationship</label>
+          <select id="c-relationship" class="form-control">
+            <option value="Parent">Parent</option>
+            <option value="Mother">Mother</option>
+            <option value="Father">Father</option>
+            <option value="Guardian">Guardian</option>
+            <option value="Sibling">Sibling</option>
+          </select>
+        </div>
+        <hr style="margin:var(--space-4) 0;border:none;
+                   border-top:1px solid var(--color-border-light)">
+      </div>
+
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">
@@ -534,25 +589,106 @@ function clearErr(key) {
   el.textContent = ''; el.hidden = true;
 }
 
+// ── Reg-number suggestion ─────────────────────────────────────────────────────
+let _regSuggestCache = {};   // role → { suggested, auto_only, hint }
+
+async function suggestRegNumber() {
+  const role    = document.getElementById('c-role').value;
+  const regInput = document.getElementById('c-reg');
+  const hintEl  = document.getElementById('c-reg-hint');
+  const btn     = document.getElementById('c-reg-refresh');
+
+  btn.disabled  = true;
+  hintEl.textContent = 'Looking up next number…';
+
+  try {
+    const data = await Api.get(`${BASE_URL}/api/admin/suggest_reg.php`, { role });
+    _regSuggestCache[role] = data;
+
+    regInput.value        = data.suggested;
+    hintEl.textContent    = data.hint;
+    hintEl.style.color    = data.auto_only
+      ? 'var(--color-success)'
+      : 'var(--color-warning, #C47B12)';
+  } catch {
+    hintEl.textContent = 'Could not fetch suggestion.';
+    hintEl.style.color = '';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function onRoleChange() {
+  const role = document.getElementById('c-role').value;
+
+  // Show the parent-link section only for the parent role
+  const parentSection = document.getElementById('c-parent-section');
+  parentSection.style.display = role === 'parent' ? 'block' : 'none';
+
+  // Clear any previously selected student when switching away from parent
+  if (role !== 'parent') {
+    document.getElementById('c-student-search').value        = '';
+    document.getElementById('c-student-id').value            = '';
+    document.getElementById('c-student-selected').textContent = '';
+    document.getElementById('c-student-results').style.display = 'none';
+  }
+
+  // Reg-number suggestion (cached or fresh)
+  const hintEl = document.getElementById('c-reg-hint');
+  if (_regSuggestCache[role]) {
+    const data = _regSuggestCache[role];
+    document.getElementById('c-reg').value = data.suggested;
+    hintEl.textContent = data.hint;
+    hintEl.style.color = data.auto_only
+      ? 'var(--color-success)'
+      : 'var(--color-warning, #C47B12)';
+  } else {
+    await suggestRegNumber();
+  }
+}
+
 // ── Create user ───────────────────────────────────────────────────────────────
 function openCreateModal() {
   clearErr('create');
-  ['c-name','c-reg','c-phone','c-email','c-pass','c-pass2']
+  _regSuggestCache = {};   // clear cache so numbers are always fresh
+
+  // Reset all text/password/email inputs
+  ['c-name','c-reg','c-phone','c-email','c-pass','c-pass2',
+   'c-student-search','c-student-id']
     .forEach(id => { document.getElementById(id).value = ''; });
+
+  // Reset reg-number hint
+  document.getElementById('c-reg-hint').textContent = '';
+
+  // Reset parent-link section
+  document.getElementById('c-student-selected').textContent  = '';
+  document.getElementById('c-student-results').style.display = 'none';
+
+  // Reset role to "student" (default) and hide parent section
+  document.getElementById('c-role').value = 'student';
+  document.getElementById('c-parent-section').style.display = 'none';
+
   openModal('create-modal');
+  suggestRegNumber();
   setTimeout(() => document.getElementById('c-name').focus(), 100);
 }
 
 async function createUser() {
   clearErr('create');
-  const name  = document.getElementById('c-name').value.trim();
-  const reg   = document.getElementById('c-reg').value.trim();
-  const role  = document.getElementById('c-role').value;
-  const phone = document.getElementById('c-phone').value.trim();
-  const email = document.getElementById('c-email').value.trim();
-  const pass  = document.getElementById('c-pass').value;
-  const pass2 = document.getElementById('c-pass2').value;
-  const btn   = document.getElementById('create-user-btn');
+  const name      = document.getElementById('c-name').value.trim();
+  const reg       = document.getElementById('c-reg').value.trim();
+  const role      = document.getElementById('c-role').value;
+  const phone     = document.getElementById('c-phone').value.trim();
+  const email     = document.getElementById('c-email').value.trim();
+  const pass      = document.getElementById('c-pass').value;
+  const pass2     = document.getElementById('c-pass2').value;
+  const btn       = document.getElementById('create-user-btn');
+  const studentId = role === 'parent'
+    ? document.getElementById('c-student-id').value
+    : '';
+  const rel       = role === 'parent'
+    ? document.getElementById('c-relationship').value
+    : '';
 
   if (!name || !reg || !role || !pass) {
     setErr('create', 'Name, registration number, role and password are required.');
@@ -565,12 +701,20 @@ async function createUser() {
 
   await Api.withLoading(btn, async () => {
     try {
-      const data = await Api.post(`${BASE_URL}/api/admin/users_create.php`, {
+      const payload = {
         full_name:  name,
         reg_number: reg,
         role, phone, email,
         password:   pass,
-      });
+      };
+
+      // Include student link if a student was selected in the parent section
+      if (role === 'parent' && studentId) {
+        payload.student_id   = parseInt(studentId, 10);
+        payload.relationship = rel;
+      }
+
+      const data = await Api.post(`${BASE_URL}/api/admin/users_create.php`, payload);
       Toast.show('success', data.message);
       closeModal('create-modal');
       setTimeout(() => window.location.reload(), 800);
@@ -665,6 +809,60 @@ async function toggleActive(userId, activate) {
   } catch (err) {
     Api.showError(err);
   }
+}
+
+// ── Student search — create modal (separate state from the link modal) ────────
+let _searchTimerCreate = null;
+
+async function searchStudentsCreate(q) {
+  clearTimeout(_searchTimerCreate);
+  const resultsEl = document.getElementById('c-student-results');
+
+  if (q.length < 2) {
+    resultsEl.style.display = 'none';
+    return;
+  }
+
+  _searchTimerCreate = setTimeout(async () => {
+    try {
+      const data = await Api.get(
+        `${BASE_URL}/api/admin/students_search.php`, { q }
+      );
+      _renderStudentResultsCreate(data.students || []);
+    } catch { /* silent — show nothing on network error */ }
+  }, 300);
+}
+
+function _renderStudentResultsCreate(students) {
+  const el = document.getElementById('c-student-results');
+
+  if (!students.length) {
+    el.innerHTML =
+      '<div style="padding:12px;color:var(--color-text-muted);font-size:13px">' +
+      'No students found</div>';
+    el.style.display = 'block';
+    return;
+  }
+
+  el.innerHTML = students.map(s =>
+    `<div onclick="selectStudentCreate(${s.id},
+                   '${escHtml(s.reg_number)} — ${escHtml(s.full_name)}')"
+          style="padding:10px 14px;cursor:pointer;font-size:13px;
+                 border-bottom:1px solid var(--color-border-light)"
+          onmouseenter="this.style.background='var(--color-bg-subtle)'"
+          onmouseleave="this.style.background=''">
+       <strong>${escHtml(s.reg_number)}</strong> — ${escHtml(s.full_name)}
+     </div>`
+  ).join('');
+
+  el.style.display = 'block';
+}
+
+function selectStudentCreate(id, label) {
+  document.getElementById('c-student-id').value             = id;
+  document.getElementById('c-student-selected').textContent = '✓ ' + label;
+  document.getElementById('c-student-results').style.display = 'none';
+  document.getElementById('c-student-search').value         = label;
 }
 
 // ── Link parent to student ────────────────────────────────────────────────────

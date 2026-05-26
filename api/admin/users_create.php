@@ -8,7 +8,10 @@
  *
  * Request body (JSON):
  *   full_name, reg_number, role, password,
- *   email (optional), phone (optional)
+ *   email        (optional)
+ *   phone        (optional)
+ *   student_id   (optional, parent role only) — link parent to this student on creation
+ *   relationship (optional, parent role only) — e.g. "Mother", "Father", "Guardian"
  *
  * Success response (201):
  *   { "success": true, "id": int, "message": string }
@@ -49,9 +52,29 @@ if (!$result['success']) {
     exit;
 }
 
+// ── Optional: link parent to a student immediately on creation ────────────────
+$role      = strtolower(trim($body['role'] ?? ''));
+$studentId = isset($body['student_id']) ? (int) $body['student_id'] : 0;
+$rel       = trim($body['relationship'] ?? 'Parent') ?: 'Parent';
+
+if ($role === 'parent' && $studentId > 0) {
+    $link = UserModel::linkParentToStudent($result['id'], $studentId, $rel);
+
+    if ($link['success']) {
+        // Append the link confirmation to the creation message
+        $result['message'] .= ' ' . $link['message'];
+        $result['linked']   = true;
+    }
+    // Non-fatal: the parent account was still created successfully even if
+    // the link failed (e.g. student ID no longer exists). The admin can
+    // link manually via the 🔗 button.
+}
+
 Auth::audit('user_created', 'users', $result['id'], [
-    'role'       => $body['role'] ?? '',
-    'reg_number' => strtoupper(trim($body['reg_number'] ?? '')),
+    'role'            => $body['role'] ?? '',
+    'reg_number'      => strtoupper(trim($body['reg_number'] ?? '')),
+    'linked_student'  => $studentId ?: null,
+    'relationship'    => $studentId ? $rel : null,
 ]);
 
 http_response_code(201);

@@ -789,6 +789,75 @@ class UserModel
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Registration number generation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Suggest the next available registration number for a given role.
+     *
+     * Formats:
+     *   student  → STU{YYYY}{NNN}   e.g. STU2025003
+     *   lecturer → LEC{NNN}          e.g. LEC004
+     *   parent   → PAR{NNN}          e.g. PAR007
+     *   admin    → ADMIN{NNN}        e.g. ADMIN002
+     *
+     * The method finds the highest existing numeric suffix that matches the
+     * role's pattern and returns prefix + (max + 1) zero-padded to 3 digits.
+     * It is safe to call concurrently — the uniqueness constraint on reg_number
+     * will reject any true duplicate; this only provides a sensible default.
+     *
+     * @param  string $role  One of: admin, lecturer, student, parent
+     * @return string        Next suggested reg number, or '' on invalid role
+     */
+    public static function generateRegNumber(string $role): string
+    {
+        switch (strtolower(trim($role))) {
+            case 'student':
+                $year      = (int) date('Y');
+                $prefix    = 'STU' . $year;
+                $prefixLen = strlen($prefix);          // e.g. 7 for "STU2025"
+                $pattern   = '^STU' . $year . '[0-9]+$';
+                $pad       = 3;
+                break;
+
+            case 'lecturer':
+                $prefix    = 'LEC';
+                $prefixLen = 3;
+                $pattern   = '^LEC[0-9]+$';
+                $pad       = 3;
+                break;
+
+            case 'parent':
+                $prefix    = 'PAR';
+                $prefixLen = 3;
+                $pattern   = '^PAR[0-9]+$';
+                $pad       = 3;
+                break;
+
+            case 'admin':
+                $prefix    = 'ADMIN';
+                $prefixLen = 5;
+                $pattern   = '^ADMIN[0-9]+$';
+                $pad       = 3;
+                break;
+
+            default:
+                return '';
+        }
+
+        // SUBSTRING is 1-based in MySQL; the numeric part starts at prefixLen + 1
+        $row = DB::row(
+            "SELECT MAX(CAST(SUBSTRING(reg_number, ?) AS UNSIGNED)) AS max_num
+             FROM users
+             WHERE reg_number REGEXP ?",
+            [$prefixLen + 1, $pattern]
+        );
+
+        $next = ((int) ($row['max_num'] ?? 0)) + 1;
+        return $prefix . str_pad((string) $next, $pad, '0', STR_PAD_LEFT);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Password validation
     // ─────────────────────────────────────────────────────────────────────────
 

@@ -128,16 +128,16 @@ $schoolName = DB::row(
       <form id="login-form" method="POST" novalidate>
         <div class="form-group">
           <label class="form-label" for="reg_number">
-            Admin Username <span class="required">*</span>
+            Admin Username or Email <span class="required">*</span>
           </label>
           <input type="text"
                  id="reg_number"
                  name="reg_number"
                  class="form-control"
                  value="<?= htmlspecialchars($regNumber) ?>"
-                 placeholder="e.g. ADMIN001"
+                 placeholder="e.g. ADMIN001 or admin@school.local"
                  autocomplete="username"
-                 autocapitalize="characters"
+                 autocapitalize="none"
                  required
                  autofocus>
         </div>

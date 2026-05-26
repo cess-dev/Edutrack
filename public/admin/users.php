@@ -74,6 +74,15 @@ $pageTitle = 'User Management';
     <header class="topbar">
       <span class="topbar-title">User Management</span>
       <div class="topbar-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openBulkLecturersModal()">
+          📋 Bulk Add Lecturers
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="openBulkParentsModal()">
+          📋 Bulk Add Parents
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="openBulkLinkModal()">
+          🔗 Bulk Link Parents
+        </button>
         <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
           + New User
         </button>
@@ -556,6 +565,242 @@ $pageTitle = 'User Management';
 </div>
 
 
+<!-- ── Bulk Add Lecturers Modal ──────────────────────────────────────────── -->
+<div class="modal-backdrop" id="bulk-lec-modal" hidden>
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2 class="modal-title">📋 Bulk Add Lecturers</h2>
+      <button class="modal-close" onclick="closeModal('bulk-lec-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div data-error-container="bulk-lec"
+           class="alert alert-error" style="margin-bottom:var(--space-4)"></div>
+
+      <div class="alert alert-info" style="margin-bottom:var(--space-5)">
+        <span class="alert-icon">ℹ</span>
+        <div>
+          Upload a CSV — one lecturer per row. Staff IDs (LEC001…) are generated
+          automatically. Default password: <strong>Lecturer@1</strong>
+          — each lecturer will be prompted to change it on first login.
+          <br><br>
+          <code style="font-size:12px;background:var(--color-bg-subtle);
+                        padding:4px 8px;border-radius:4px;display:inline-block">
+            full_name, email, phone
+          </code>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">CSV File <span class="required">*</span></label>
+        <input type="file" id="bl-lec-csv" class="form-control" accept=".csv,text/csv">
+      </div>
+
+      <!-- Credentials report (shown after upload) -->
+      <div id="bl-lec-result" style="display:none;margin-top:var(--space-4)">
+        <div id="bl-lec-summary" class="alert alert-success"
+             style="margin-bottom:var(--space-3)"></div>
+        <div id="bl-lec-creds" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      margin-bottom:var(--space-2)">
+            <p class="text-sm font-medium">📄 Credentials to distribute:</p>
+            <button class="btn btn-ghost btn-sm" onclick="printCreds('lec')">🖨 Print</button>
+          </div>
+          <div style="max-height:260px;overflow-y:auto;
+                      border:1px solid var(--color-border);border-radius:var(--radius-md)">
+            <table id="bl-lec-creds-table"
+                   style="width:100%;font-size:12px;border-collapse:collapse">
+              <thead style="background:var(--color-bg-subtle);position:sticky;top:0">
+                <tr>
+                  <th style="padding:8px;text-align:left">Name</th>
+                  <th style="padding:8px;text-align:left">Staff ID</th>
+                  <th style="padding:8px;text-align:left">Email</th>
+                  <th style="padding:8px;text-align:left">Temp Password</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="bl-lec-errors" style="display:none;margin-top:var(--space-3)">
+          <p class="text-sm font-medium text-danger" style="margin-bottom:var(--space-2)">
+            ❌ Rows skipped:
+          </p>
+          <ul id="bl-lec-errors-list"
+              style="font-size:12px;color:var(--color-danger);padding-left:var(--space-4);
+                     list-style:disc;line-height:1.8"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bulk-lec-modal')">Close</button>
+      <button class="btn btn-primary" id="bl-lec-btn" onclick="bulkAddLecturers()">
+        Upload &amp; Create
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Bulk Add Parents Modal ────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="bulk-par-modal" hidden>
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <h2 class="modal-title">📋 Bulk Add Parents</h2>
+      <button class="modal-close" onclick="closeModal('bulk-par-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div data-error-container="bulk-par"
+           class="alert alert-error" style="margin-bottom:var(--space-4)"></div>
+
+      <div class="alert alert-info" style="margin-bottom:var(--space-5)">
+        <span class="alert-icon">ℹ</span>
+        <div>
+          Upload a CSV — one parent-student pair per row.
+          Parent IDs (PAR001…) are generated automatically.
+          Default password: <strong>Parent@1</strong> — parents will be
+          prompted to change it on first login.
+          <br><br>
+          <code style="font-size:12px;background:var(--color-bg-subtle);
+                        padding:4px 8px;border-radius:4px;display:inline-block">
+            full_name, email, phone, student_reg_number, relationship
+          </code>
+          <br>
+          <span class="text-xs text-muted" style="display:block;margin-top:var(--space-2)">
+            email, phone, student_reg_number and relationship are optional.
+            A parent with two children appears on two rows with the same email — only
+            one account is created and both links are made.
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">CSV File <span class="required">*</span></label>
+        <input type="file" id="bl-par-csv" class="form-control" accept=".csv,text/csv">
+      </div>
+
+      <!-- Credentials report -->
+      <div id="bl-par-result" style="display:none;margin-top:var(--space-4)">
+        <div id="bl-par-summary" class="alert alert-success"
+             style="margin-bottom:var(--space-3)"></div>
+        <div id="bl-par-creds" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      margin-bottom:var(--space-2)">
+            <p class="text-sm font-medium">📄 Credentials to distribute:</p>
+            <button class="btn btn-ghost btn-sm" onclick="printCreds('par')">🖨 Print</button>
+          </div>
+          <div style="max-height:260px;overflow-y:auto;
+                      border:1px solid var(--color-border);border-radius:var(--radius-md)">
+            <table id="bl-par-creds-table"
+                   style="width:100%;font-size:12px;border-collapse:collapse">
+              <thead style="background:var(--color-bg-subtle);position:sticky;top:0">
+                <tr>
+                  <th style="padding:8px;text-align:left">Name</th>
+                  <th style="padding:8px;text-align:left">Parent ID</th>
+                  <th style="padding:8px;text-align:left">Email / Phone</th>
+                  <th style="padding:8px;text-align:left">Linked Student(s)</th>
+                  <th style="padding:8px;text-align:left">Temp Password</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="bl-par-errors" style="display:none;margin-top:var(--space-3)">
+          <p class="text-sm font-medium text-danger" style="margin-bottom:var(--space-2)">
+            ❌ Rows skipped:
+          </p>
+          <ul id="bl-par-errors-list"
+              style="font-size:12px;color:var(--color-danger);padding-left:var(--space-4);
+                     list-style:disc;line-height:1.8"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bulk-par-modal')">Close</button>
+      <button class="btn btn-primary" id="bl-par-btn" onclick="bulkAddParents()">
+        Upload &amp; Create
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Bulk Link Parents Modal ───────────────────────────────────────────── -->
+<div class="modal-backdrop" id="bulk-link-modal" hidden>
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h2 class="modal-title">🔗 Bulk Link Parents to Students</h2>
+      <button class="modal-close" onclick="closeModal('bulk-link-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div data-error-container="bulk-link"
+           class="alert alert-error" style="margin-bottom:var(--space-4)"></div>
+
+      <div class="alert alert-info" style="margin-bottom:var(--space-5)">
+        <span class="alert-icon">ℹ</span>
+        <div>
+          Upload a CSV with one parent-student pair per row. The
+          <strong>relationship</strong> column is optional (defaults to "Parent").
+          <br><br>
+          <code style="font-size:12px;background:var(--color-bg-subtle);
+                        padding:4px 8px;border-radius:4px;display:inline-block">
+            parent_reg_number, student_reg_number, relationship
+          </code>
+          <br>
+          <code style="font-size:12px;background:var(--color-bg-subtle);
+                        padding:4px 8px;border-radius:4px;display:inline-block;margin-top:4px">
+            PAR001, STU2024003, Mother<br>
+            PAR001, STU2025011, Mother<br>
+            PAR002, STU2024007, Father
+          </code>
+          <br><br>
+          A header row is optional. Already-linked pairs are skipped. One parent can
+          link to many children; one student can have many parents — all rows are
+          processed independently.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">CSV File <span class="required">*</span></label>
+        <input type="file" id="bl-csv" class="form-control" accept=".csv,text/csv">
+      </div>
+
+      <!-- Result summary (shown after upload) -->
+      <div id="bl-summary" style="display:none;margin-top:var(--space-4)">
+        <div id="bl-summary-ok" class="alert alert-success"
+             style="margin-bottom:var(--space-3)"></div>
+        <div id="bl-errors" style="display:none">
+          <p class="text-sm font-medium text-danger" style="margin-bottom:var(--space-2)">
+            ❌ Rows skipped due to errors:
+          </p>
+          <div style="max-height:200px;overflow-y:auto;
+                      border:1px solid var(--color-border);
+                      border-radius:var(--radius-md);padding:var(--space-2)">
+            <table style="width:100%;font-size:12px;border-collapse:collapse">
+              <thead>
+                <tr style="color:var(--color-text-muted);text-align:left">
+                  <th style="padding:4px 8px">Row</th>
+                  <th style="padding:4px 8px">Parent</th>
+                  <th style="padding:4px 8px">Student</th>
+                  <th style="padding:4px 8px">Reason</th>
+                </tr>
+              </thead>
+              <tbody id="bl-errors-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bulk-link-modal')">Close</button>
+      <button class="btn btn-primary" id="bl-btn" onclick="bulkLinkParents()">
+        Upload &amp; Link
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
 <script>
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
@@ -955,6 +1200,187 @@ function escHtml(str) {
   return String(str ?? '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Bulk Add Lecturers ────────────────────────────────────────────────────────
+function openBulkLecturersModal() {
+  clearErr('bulk-lec');
+  document.getElementById('bl-lec-csv').value     = null;
+  document.getElementById('bl-lec-result').style.display = 'none';
+  openModal('bulk-lec-modal');
+}
+
+async function bulkAddLecturers() {
+  clearErr('bulk-lec');
+  const csvFile = document.getElementById('bl-lec-csv').files[0];
+  const btn     = document.getElementById('bl-lec-btn');
+  if (!csvFile) { setErr('bulk-lec', 'Please select a CSV file.'); return; }
+
+  document.getElementById('bl-lec-result').style.display = 'none';
+  const fd = new FormData();
+  fd.append('csv_file', csvFile);
+
+  await Api.withLoading(btn, async () => {
+    try {
+      const data = await Api.upload(`${BASE_URL}/api/admin/users_bulk_lecturers.php`, fd);
+      _showBulkResult('lec', data);
+      if (data.created > 0) setTimeout(() => window.location.reload(), 4000);
+    } catch (err) { setErr('bulk-lec', err.message); }
+  });
+}
+
+// ── Bulk Add Parents ──────────────────────────────────────────────────────────
+function openBulkParentsModal() {
+  clearErr('bulk-par');
+  document.getElementById('bl-par-csv').value     = null;
+  document.getElementById('bl-par-result').style.display = 'none';
+  openModal('bulk-par-modal');
+}
+
+async function bulkAddParents() {
+  clearErr('bulk-par');
+  const csvFile = document.getElementById('bl-par-csv').files[0];
+  const btn     = document.getElementById('bl-par-btn');
+  if (!csvFile) { setErr('bulk-par', 'Please select a CSV file.'); return; }
+
+  document.getElementById('bl-par-result').style.display = 'none';
+  const fd = new FormData();
+  fd.append('csv_file', csvFile);
+
+  await Api.withLoading(btn, async () => {
+    try {
+      const data = await Api.upload(`${BASE_URL}/api/admin/users_bulk_parents.php`, fd);
+      _showBulkResult('par', data);
+      if (data.created > 0) setTimeout(() => window.location.reload(), 4000);
+    } catch (err) { setErr('bulk-par', err.message); }
+  });
+}
+
+// ── Shared: render credentials table + error list ─────────────────────────────
+function _showBulkResult(type, data) {
+  const resultDiv  = document.getElementById(`bl-${type}-result`);
+  const summaryEl  = document.getElementById(`bl-${type}-summary`);
+  const credsDiv   = document.getElementById(`bl-${type}-creds`);
+  const credsTbody = document.querySelector(`#bl-${type}-creds-table tbody`);
+  const errDiv     = document.getElementById(`bl-${type}-errors`);
+  const errList    = document.getElementById(`bl-${type}-errors-list`);
+
+  summaryEl.textContent        = data.message;
+  resultDiv.style.display      = 'block';
+
+  if (data.accounts && data.accounts.length) {
+    credsTbody.innerHTML = data.accounts.map(a => {
+      const contact = [a.email, a.phone].filter(Boolean).join(' / ') || '—';
+      if (type === 'par') {
+        const students = (a.linked_to || []).join(', ') || '—';
+        return `<tr style="border-top:1px solid var(--color-border-light)">
+          <td style="padding:6px 8px">${escHtml(a.name)}</td>
+          <td style="padding:6px 8px;font-family:monospace;font-weight:600">${escHtml(a.reg_number)}</td>
+          <td style="padding:6px 8px">${escHtml(contact)}</td>
+          <td style="padding:6px 8px;font-family:monospace">${escHtml(students)}</td>
+          <td style="padding:6px 8px;font-family:monospace;color:var(--color-accent)">${escHtml(a.temp_pass)}</td>
+        </tr>`;
+      } else {
+        return `<tr style="border-top:1px solid var(--color-border-light)">
+          <td style="padding:6px 8px">${escHtml(a.name)}</td>
+          <td style="padding:6px 8px;font-family:monospace;font-weight:600">${escHtml(a.reg_number)}</td>
+          <td style="padding:6px 8px">${escHtml(contact)}</td>
+          <td style="padding:6px 8px;font-family:monospace;color:var(--color-accent)">${escHtml(a.temp_pass)}</td>
+        </tr>`;
+      }
+    }).join('');
+    credsDiv.style.display = 'block';
+  } else {
+    credsDiv.style.display = 'none';
+  }
+
+  if (data.errors && data.errors.length) {
+    errList.innerHTML = data.errors.map(e =>
+      `<li>Row ${e.row} — <strong>${escHtml(e.name)}</strong>: ${escHtml(e.reason)}</li>`
+    ).join('');
+    errDiv.style.display = 'block';
+  } else {
+    errDiv.style.display = 'none';
+  }
+}
+
+// ── Print credentials table ───────────────────────────────────────────────────
+function printCreds(type) {
+  const table = document.getElementById(`bl-${type}-creds-table`);
+  const title = type === 'lec' ? 'Lecturer Credentials' : 'Parent Credentials';
+  const win   = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>${title}</title>
+    <style>
+      body { font-family: sans-serif; font-size: 13px; padding: 20px; }
+      h2   { margin-bottom: 12px; }
+      table{ border-collapse: collapse; width: 100%; }
+      th,td{ border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+      th   { background: #f5f5f5; }
+      .note{ margin-top:16px; font-size:11px; color:#666; }
+    </style></head><body>
+    <h2>${title} — ${new Date().toLocaleDateString()}</h2>
+    ${table.outerHTML}
+    <p class="note">⚠️ Users must change their temporary password after first login.</p>
+    </body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ── Bulk Link Parents ─────────────────────────────────────────────────────────
+function openBulkLinkModal() {
+  clearErr('bulk-link');
+  document.getElementById('bl-csv').value       = null;
+  document.getElementById('bl-summary').style.display = 'none';
+  openModal('bulk-link-modal');
+}
+
+async function bulkLinkParents() {
+  clearErr('bulk-link');
+  const csvFile = document.getElementById('bl-csv').files[0];
+  const btn     = document.getElementById('bl-btn');
+
+  if (!csvFile) { setErr('bulk-link', 'Please select a CSV file.'); return; }
+
+  // Hide previous result
+  document.getElementById('bl-summary').style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('csv_file', csvFile);
+
+  await Api.withLoading(btn, async () => {
+    try {
+      const data = await Api.upload(
+        `${BASE_URL}/api/admin/parent_link_bulk.php`, formData
+      );
+
+      // Show summary
+      document.getElementById('bl-summary-ok').textContent = data.message;
+      document.getElementById('bl-summary').style.display  = 'block';
+
+      if (data.errors && data.errors.length) {
+        const tbody = document.getElementById('bl-errors-body');
+        tbody.innerHTML = data.errors.map(e =>
+          `<tr style="border-top:1px solid var(--color-border-light)">
+             <td style="padding:4px 8px;color:var(--color-text-muted)">${e.row}</td>
+             <td style="padding:4px 8px;font-family:monospace">${escHtml(e.parent)}</td>
+             <td style="padding:4px 8px;font-family:monospace">${escHtml(e.student)}</td>
+             <td style="padding:4px 8px;color:var(--color-danger)">${escHtml(e.reason)}</td>
+           </tr>`
+        ).join('');
+        document.getElementById('bl-errors').style.display = 'block';
+      } else {
+        document.getElementById('bl-errors').style.display = 'none';
+      }
+
+      // Reload page after a short delay only if something was actually linked
+      if (data.linked > 0) {
+        setTimeout(() => window.location.reload(), 2500);
+      }
+    } catch (err) {
+      setErr('bulk-link', err.message);
+    }
+  });
 }
 </script>
 

@@ -30,6 +30,17 @@ $activeSessions = (int)(DB::row(
     <button type="button" class="sidebar-close-btn" aria-label="Close navigation">✕</button>
   </div>
 
+  <?php if (!empty($_SESSION['must_change_password'])): ?>
+  <div style="background:var(--color-warning-subtle,#FFF9E6);
+              border-left:3px solid var(--color-warning,#D97706);
+              padding:var(--space-3) var(--space-4);font-size:var(--text-xs)">
+    <strong style="color:var(--color-warning,#D97706)">🔐 Temporary password</strong><br>
+    <span>Please <a href="<?= BASE_URL ?>/admin/profile"
+                   style="color:var(--color-accent);text-decoration:underline">
+      change your password</a> before continuing.</span>
+  </div>
+  <?php endif; ?>
+
   <nav class="nav" aria-label="Admin navigation">
 
     <div class="nav-section-label">Overview</div>

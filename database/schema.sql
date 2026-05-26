@@ -51,7 +51,8 @@ CREATE TABLE `users` (
                         'student',
                         'parent'
                     )               NOT NULL,
-    `is_active`     TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '0 = deactivated, cannot log in',
+    `is_active`             TINYINT(1)  NOT NULL DEFAULT 1 COMMENT '0 = deactivated, cannot log in',
+    `must_change_password`  TINYINT(1)  NOT NULL DEFAULT 0 COMMENT '1 = bulk-created with temp password, must change on first login',
     `last_login`    DATETIME        DEFAULT NULL,
     `created_by`    INT UNSIGNED    DEFAULT NULL COMMENT 'Admin user ID who created this account',
     `created_at`    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -5,7 +5,16 @@
       "Bash(php -l api/admin/enrollment_bulk.php)",
       "Bash(php -l api/admin/enrollment_add.php)",
       "Bash(php -l api/admin/enrollment_remove.php)",
-      "Bash(php -l api/admin/unit_create.php)"
+      "Bash(php -l api/admin/unit_create.php)",
+      "Bash(cd /d c:\\\\xampp\\\\htdocs\\\\edutrack)",
+      "Bash(php -l api/admin/parent_link_bulk.php)",
+      "Bash(php -l public/admin/users.php)",
+      "Bash(php -l \"c:/xampp/htdocs/edutrack/api/admin/parent_link_bulk.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/edutrack/public/admin/users.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/edutrack/api/admin/users_bulk_lecturers.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/edutrack/api/admin/users_bulk_parents.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/edutrack/backend/middleware/auth.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/edutrack/backend/models/UserModel.php\")"
     ]
   }
 }

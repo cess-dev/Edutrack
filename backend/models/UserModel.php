@@ -95,13 +95,14 @@ class UserModel
         }
 
         // Hash password
-        $hash = password_hash($password . PASSWORD_PEPPER, PASSWORD_BCRYPT, ['cost' => 12]);
+        $hash              = password_hash($password . PASSWORD_PEPPER, PASSWORD_BCRYPT, ['cost' => 12]);
+        $mustChangePw      = !empty($data['must_change_password']) ? 1 : 0;
 
         $id = DB::insert(
             "INSERT INTO users
-                (reg_number, full_name, email, phone, password_hash, role, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [$regNumber, $fullName, $email, $phone, $hash, $role, $createdBy]
+                (reg_number, full_name, email, phone, password_hash, role, created_by, must_change_password)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [$regNumber, $fullName, $email, $phone, $hash, $role, $createdBy, $mustChangePw]
         );
 
         return [
@@ -150,6 +151,228 @@ class UserModel
                     'reg'    => $row['reg_number'] ?? '(empty)',
                     'reason' => $res['message'],
                 ];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Bulk-create lecturer accounts from a parsed CSV array.
+     *
+     * Each row: full_name (required), email (optional), phone (optional).
+     * Reg numbers are auto-generated (LEC001, LEC002, …).
+     * All accounts are created with must_change_password = 1.
+     *
+     * @param  array  $rows        Array of associative arrays
+     * @param  int    $createdBy   Admin user ID
+     * @param  string $defaultPass Default password (must pass strength rules)
+     * @return array {
+     *   created: int,
+     *   skipped: int,
+     *   errors:  array,
+     *   accounts: array  — newly created accounts for the credentials report
+     * }
+     */
+    public static function bulkCreateLecturers(
+        array  $rows,
+        int    $createdBy,
+        string $defaultPass = 'Lecturer@1'
+    ): array {
+        $result = ['created' => 0, 'skipped' => 0, 'errors' => [], 'accounts' => []];
+
+        foreach ($rows as $i => $row) {
+            $rowNum   = $i + 2;
+            $fullName = trim($row['full_name'] ?? '');
+            $email    = trim($row['email']     ?? '') ?: null;
+            $phone    = trim($row['phone']     ?? '') ?: null;
+
+            if (empty($fullName)) {
+                $result['errors'][] = ['row' => $rowNum, 'name' => '(blank)', 'reason' => 'full_name is required.'];
+                $result['skipped']++;
+                continue;
+            }
+
+            $regNumber = self::generateRegNumber('lecturer');
+
+            $res = self::create([
+                'reg_number'          => $regNumber,
+                'full_name'           => $fullName,
+                'email'               => $email,
+                'phone'               => $phone,
+                'password'            => $defaultPass,
+                'role'                => 'lecturer',
+                'created_by'          => $createdBy,
+                'must_change_password'=> 1,
+            ]);
+
+            if ($res['success']) {
+                $result['created']++;
+                $result['accounts'][] = [
+                    'name'       => $fullName,
+                    'reg_number' => $regNumber,
+                    'email'      => $email,
+                    'phone'      => $phone,
+                    'temp_pass'  => $defaultPass,
+                ];
+            } else {
+                $result['skipped']++;
+                $result['errors'][] = ['row' => $rowNum, 'name' => $fullName, 'reason' => $res['message']];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Bulk-create parent accounts from a parsed CSV array, with optional
+     * immediate student linking.
+     *
+     * Each row: full_name, email (optional), phone (optional),
+     *           student_reg_number (optional), relationship (optional).
+     *
+     * A parent who appears on multiple rows (two children) creates ONE account
+     * and is linked to each child.  Detection uses email (if provided) or
+     * full_name + phone as a fallback key.
+     *
+     * Reg numbers are auto-generated (PAR001, PAR002, …).
+     * All new accounts are created with must_change_password = 1.
+     *
+     * @param  array  $rows
+     * @param  int    $createdBy
+     * @param  string $defaultPass
+     * @return array {
+     *   created: int,
+     *   linked:  int,
+     *   skipped: int,
+     *   errors:  array,
+     *   accounts: array
+     * }
+     */
+    public static function bulkCreateParents(
+        array  $rows,
+        int    $createdBy,
+        string $defaultPass = 'Parent@1'
+    ): array {
+        $result = ['created' => 0, 'linked' => 0, 'skipped' => 0, 'errors' => [], 'accounts' => []];
+
+        // Cache of email/key → parent_id for parents created in this batch
+        // Prevents creating duplicate accounts when same parent has multiple children in CSV
+        $batchCache = [];  // key => parent_id
+
+        foreach ($rows as $i => $row) {
+            $rowNum       = $i + 2;
+            $fullName     = trim($row['full_name']        ?? '');
+            $email        = trim($row['email']            ?? '') ?: null;
+            $phone        = trim($row['phone']            ?? '') ?: null;
+            $studentReg   = strtoupper(trim($row['student_reg_number'] ?? ''));
+            $relationship = trim($row['relationship']     ?? '') ?: 'Parent';
+
+            if (empty($fullName)) {
+                $result['errors'][] = ['row' => $rowNum, 'name' => '(blank)', 'reason' => 'full_name is required.'];
+                $result['skipped']++;
+                continue;
+            }
+
+            // Build a de-duplication key for this batch
+            $dedupKey = $email
+                ? 'email:' . strtolower($email)
+                : 'name_phone:' . strtolower($fullName) . '|' . ($phone ?? '');
+
+            // ── Resolve or create the parent account ──────────────────────────
+            $parentId = null;
+            $isNew    = false;
+
+            if (isset($batchCache[$dedupKey])) {
+                // Already created in this CSV run
+                $parentId = $batchCache[$dedupKey];
+            } elseif ($email) {
+                // Check if a parent with this email already exists in the DB
+                $existing = DB::row(
+                    "SELECT id, role FROM users WHERE email = ? LIMIT 1",
+                    [$email]
+                );
+                if ($existing) {
+                    if ($existing['role'] !== 'parent') {
+                        $result['errors'][] = [
+                            'row'    => $rowNum,
+                            'name'   => $fullName,
+                            'reason' => "Email '{$email}' belongs to a non-parent account.",
+                        ];
+                        $result['skipped']++;
+                        continue;
+                    }
+                    $parentId = (int) $existing['id'];
+                    $batchCache[$dedupKey] = $parentId;
+                }
+            }
+
+            if ($parentId === null) {
+                // Create new parent account
+                $regNumber = self::generateRegNumber('parent');
+
+                $res = self::create([
+                    'reg_number'          => $regNumber,
+                    'full_name'           => $fullName,
+                    'email'               => $email,
+                    'phone'               => $phone,
+                    'password'            => $defaultPass,
+                    'role'                => 'parent',
+                    'created_by'          => $createdBy,
+                    'must_change_password'=> 1,
+                ]);
+
+                if (!$res['success']) {
+                    $result['skipped']++;
+                    $result['errors'][] = ['row' => $rowNum, 'name' => $fullName, 'reason' => $res['message']];
+                    continue;
+                }
+
+                $parentId = $res['id'];
+                $isNew    = true;
+                $result['created']++;
+                $batchCache[$dedupKey] = $parentId;
+
+                $result['accounts'][] = [
+                    'name'        => $fullName,
+                    'reg_number'  => $regNumber,
+                    'email'       => $email,
+                    'phone'       => $phone,
+                    'temp_pass'   => $defaultPass,
+                    'linked_to'   => [],   // filled below
+                ];
+            }
+
+            // ── Link to student (if provided) ─────────────────────────────────
+            if ($studentReg !== '') {
+                $student = self::findByRegNumber($studentReg);
+                if (!$student || $student['role'] !== 'student') {
+                    $result['errors'][] = [
+                        'row'    => $rowNum,
+                        'name'   => $fullName,
+                        'reason' => "Student reg '{$studentReg}' not found or not a student account.",
+                    ];
+                } else {
+                    $link = self::linkParentToStudent($parentId, $student['id'], $relationship);
+                    if ($link['success']) {
+                        $result['linked']++;
+                        // Append to this parent's linked_to list in accounts array
+                        foreach ($result['accounts'] as &$acc) {
+                            if ($acc['reg_number'] === ($batchCache[$dedupKey] > 0
+                                ? self::findById($parentId)['reg_number'] ?? ''
+                                : '')) {
+                                $acc['linked_to'][] = $studentReg;
+                                break;
+                            }
+                        }
+                        unset($acc);
+                        // Simpler: just tag the last-created account if isNew
+                        if ($isNew && !empty($result['accounts'])) {
+                            $result['accounts'][count($result['accounts']) - 1]['linked_to'][] = $studentReg;
+                        }
+                    }
+                    // Already linked → not an error, just skip silently
+                }
             }
         }
 
@@ -380,9 +603,12 @@ class UserModel
         $hash = password_hash($newPassword . PASSWORD_PEPPER, PASSWORD_BCRYPT, ['cost' => 12]);
 
         DB::execute(
-            "UPDATE users SET password_hash = ? WHERE id = ?",
+            "UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?",
             [$hash, $userId]
         );
+
+        // Clear the session flag so the sidebar notice disappears immediately
+        Auth::clearMustChangePassword();
 
         return ['success' => true, 'message' => 'Password changed successfully.'];
     }

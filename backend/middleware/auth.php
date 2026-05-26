@@ -221,7 +221,8 @@ class Auth
         $column  = $isEmail ? 'email' : 'reg_number';
 
         $user = DB::row(
-            "SELECT id, reg_number, full_name, email, phone, password_hash, role, is_active
+            "SELECT id, reg_number, full_name, email, phone, password_hash,
+                    role, is_active, must_change_password
              FROM users
              WHERE {$column} = ?
              LIMIT 1",
@@ -246,12 +247,13 @@ class Auth
         session_regenerate_id(true);
 
         // Store only what is needed — never store the password hash in the session
-        $_SESSION['user_id']     = $user['id'];
-        $_SESSION['reg_number']  = $user['reg_number'];
-        $_SESSION['full_name']   = $user['full_name'];
-        $_SESSION['email']       = $user['email'];
-        $_SESSION['role']        = $user['role'];
-        $_SESSION['_created']    = time();
+        $_SESSION['user_id']              = $user['id'];
+        $_SESSION['reg_number']           = $user['reg_number'];
+        $_SESSION['full_name']            = $user['full_name'];
+        $_SESSION['email']                = $user['email'];
+        $_SESSION['role']                 = $user['role'];
+        $_SESSION['must_change_password'] = (bool)($user['must_change_password'] ?? false);
+        $_SESSION['_created']             = time();
 
         // Log the login action to the audit trail
         self::audit('user_login', 'users', $user['id']);
@@ -305,6 +307,24 @@ class Auth
     public static function role(): ?string
     {
         return $_SESSION['role'] ?? null;
+    }
+
+    /**
+     * True when the current user logged in via a bulk-created account
+     * and has not yet changed their temporary password.
+     */
+    public static function mustChangePassword(): bool
+    {
+        return !empty($_SESSION['must_change_password']);
+    }
+
+    /**
+     * Clear the must_change_password flag in the session.
+     * Called by UserModel::changePassword() after a successful change.
+     */
+    public static function clearMustChangePassword(): void
+    {
+        $_SESSION['must_change_password'] = false;
     }
 
     /** @return string|null Current user's full name */

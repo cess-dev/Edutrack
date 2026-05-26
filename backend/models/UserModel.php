@@ -692,6 +692,341 @@ class UserModel
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Course-level enrollment (master records)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Enroll a student in a course for a given academic period.
+     *
+     * Creates one row in student_course_enrollments, then derives unit-level
+     * enrollment rows for every active unit matching the course + year + semester
+     * combination.  Both operations are idempotent (duplicate rows silently skipped).
+     *
+     * @param  int    $studentId
+     * @param  int    $courseId
+     * @param  int    $yearOfStudy    1–6
+     * @param  string $academicYear   e.g. "2025/2026"
+     * @param  int    $semester       1 or 2
+     * @param  string $source         "manual" | "csv"
+     * @param  int    $enrolledBy     Admin user ID
+     * @return array {
+     *   success: bool,
+     *   message: string,
+     *   units_enrolled: int,
+     *   zero_units: bool    — true if no units exist yet (enroll succeeds with warning)
+     * }
+     */
+    public static function enrollStudentInCourse(
+        int    $studentId,
+        int    $courseId,
+        int    $yearOfStudy,
+        string $academicYear,
+        int    $semester,
+        string $source     = 'manual',
+        int    $enrolledBy = 0
+    ): array {
+        // Verify student
+        $student = self::findById($studentId);
+        if (!$student || $student['role'] !== 'student') {
+            return ['success' => false, 'message' => 'Student not found.', 'units_enrolled' => 0, 'zero_units' => false];
+        }
+
+        // Verify course
+        $course = DB::row("SELECT id, name, code FROM courses WHERE id = ?", [$courseId]);
+        if (!$course) {
+            return ['success' => false, 'message' => 'Course not found.', 'units_enrolled' => 0, 'zero_units' => false];
+        }
+
+        // Upsert the master record (idempotent)
+        $existing = DB::row(
+            "SELECT id FROM student_course_enrollments
+             WHERE student_id = ? AND course_id = ? AND academic_year = ? AND semester = ?",
+            [$studentId, $courseId, $academicYear, $semester]
+        );
+
+        if (!$existing) {
+            DB::insert(
+                "INSERT INTO student_course_enrollments
+                    (student_id, course_id, year_of_study, academic_year, semester, source, enrolled_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [
+                    $studentId,
+                    $courseId,
+                    $yearOfStudy,
+                    $academicYear,
+                    $semester,
+                    $source,
+                    $enrolledBy ?: null,
+                ]
+            );
+        }
+
+        // Derive unit enrollments
+        $unitsEnrolled = self::deriveCourseUnitEnrollments(
+            $studentId, $courseId, $yearOfStudy, $academicYear, $semester
+        );
+
+        $zeroUnits = ($unitsEnrolled === 0);
+        $message   = $existing
+            ? "{$student['full_name']} is already enrolled in {$course['code']} for {$academicYear} Semester {$semester}."
+            : "{$student['full_name']} enrolled in {$course['code']} ({$academicYear} S{$semester}).";
+
+        if (!$existing) {
+            if ($zeroUnits) {
+                $message .= " No units set up yet — the student will be auto-enrolled when units are added.";
+            } else {
+                $message .= " Auto-enrolled in {$unitsEnrolled} unit(s).";
+            }
+        }
+
+        return [
+            'success'       => true,
+            'message'       => $message,
+            'units_enrolled' => $unitsEnrolled,
+            'zero_units'    => $zeroUnits,
+            'already_existed' => (bool) $existing,
+        ];
+    }
+
+    /**
+     * Derive unit-level enrollment rows from an existing course enrollment.
+     *
+     * Looks up every active unit for the given course + year + semester,
+     * then inserts an enrollment row for each one (skipping duplicates).
+     *
+     * @param  int    $studentId
+     * @param  int    $courseId
+     * @param  int    $yearOfStudy
+     * @param  string $academicYear
+     * @param  int    $semester
+     * @return int    Number of NEW unit enrollments created
+     */
+    public static function deriveCourseUnitEnrollments(
+        int    $studentId,
+        int    $courseId,
+        int    $yearOfStudy,
+        string $academicYear,
+        int    $semester
+    ): int {
+        $units = DB::rows(
+            "SELECT id FROM units
+             WHERE course_id = ? AND year_of_study = ? AND semester = ? AND is_active = 1",
+            [$courseId, $yearOfStudy, $semester]
+        );
+
+        $created = 0;
+        foreach ($units as $unit) {
+            $dup = DB::row(
+                "SELECT id FROM enrollments
+                 WHERE student_id = ? AND unit_id = ? AND academic_year = ? AND semester = ?",
+                [$studentId, $unit['id'], $academicYear, $semester]
+            );
+            if (!$dup) {
+                DB::insert(
+                    "INSERT INTO enrollments (student_id, unit_id, academic_year, semester)
+                     VALUES (?, ?, ?, ?)",
+                    [$studentId, $unit['id'], $academicYear, $semester]
+                );
+                $created++;
+            }
+        }
+
+        return $created;
+    }
+
+    /**
+     * Remove a student's course enrollment (and all derived unit enrollments)
+     * for a given academic period.
+     *
+     * @param  int    $studentId
+     * @param  int    $courseId
+     * @param  string $academicYear
+     * @param  int    $semester
+     * @return array { success: bool, message: string, units_removed: int }
+     */
+    public static function unenrollStudentFromCourse(
+        int    $studentId,
+        int    $courseId,
+        string $academicYear,
+        int    $semester
+    ): array {
+        // Find the master record
+        $sce = DB::row(
+            "SELECT sce.id, sce.year_of_study
+             FROM student_course_enrollments sce
+             WHERE sce.student_id = ? AND sce.course_id = ?
+               AND sce.academic_year = ? AND sce.semester = ?",
+            [$studentId, $courseId, $academicYear, $semester]
+        );
+
+        if (!$sce) {
+            return ['success' => false, 'message' => 'Course enrollment not found.', 'units_removed' => 0];
+        }
+
+        // Count unit enrollments that will be removed
+        $unitCount = (int) DB::row(
+            "SELECT COUNT(*) AS cnt
+             FROM enrollments e
+             JOIN units u ON u.id = e.unit_id
+             WHERE e.student_id = ? AND u.course_id = ?
+               AND e.academic_year = ? AND e.semester = ?",
+            [$studentId, $courseId, $academicYear, $semester]
+        )['cnt'];
+
+        // Delete unit enrollments (cascade would handle this, but be explicit)
+        DB::execute(
+            "DELETE e FROM enrollments e
+             JOIN units u ON u.id = e.unit_id
+             WHERE e.student_id = ? AND u.course_id = ?
+               AND e.academic_year = ? AND e.semester = ?",
+            [$studentId, $courseId, $academicYear, $semester]
+        );
+
+        // Delete master record
+        DB::execute(
+            "DELETE FROM student_course_enrollments WHERE id = ?",
+            [$sce['id']]
+        );
+
+        $student = self::findById($studentId);
+        $course  = DB::row("SELECT code FROM courses WHERE id = ?", [$courseId]);
+
+        return [
+            'success'       => true,
+            'message'       => ($student['full_name'] ?? 'Student') . " unenrolled from " .
+                               ($course['code'] ?? 'course') . " ({$academicYear} S{$semester}).",
+            'units_removed' => $unitCount,
+        ];
+    }
+
+    /**
+     * Get the current course enrollment for a student (the active academic period).
+     *
+     * @param  int    $studentId
+     * @param  string $academicYear
+     * @param  int    $semester
+     * @return array|null  The SCE row with course details, or null if not enrolled
+     */
+    public static function getStudentCourseEnrollment(
+        int    $studentId,
+        string $academicYear,
+        int    $semester
+    ): ?array {
+        return DB::row(
+            "SELECT sce.*, c.code AS course_code, c.name AS course_name
+             FROM student_course_enrollments sce
+             JOIN courses c ON c.id = sce.course_id
+             WHERE sce.student_id = ? AND sce.academic_year = ? AND sce.semester = ?",
+            [$studentId, $academicYear, $semester]
+        ) ?: null;
+    }
+
+    /**
+     * Get the full enrollment history for a student, grouped by academic period.
+     *
+     * Each entry contains the course enrollment details plus a nested list of
+     * unit enrollments for that period.
+     *
+     * @param  int $studentId
+     * @return array  Ordered newest-first
+     */
+    public static function getStudentCourseHistory(int $studentId): array
+    {
+        $periods = DB::rows(
+            "SELECT
+                sce.id,
+                sce.academic_year,
+                sce.semester,
+                sce.year_of_study,
+                sce.source,
+                sce.enrolled_at,
+                c.id   AS course_id,
+                c.code AS course_code,
+                c.name AS course_name
+             FROM student_course_enrollments sce
+             JOIN courses c ON c.id = sce.course_id
+             WHERE sce.student_id = ?
+             ORDER BY sce.academic_year DESC, sce.semester DESC",
+            [$studentId]
+        );
+
+        foreach ($periods as &$p) {
+            $p['units'] = DB::rows(
+                "SELECT
+                    u.id        AS unit_id,
+                    u.code      AS unit_code,
+                    u.name      AS unit_name,
+                    u.credit_hours,
+                    lec.full_name AS lecturer_name,
+                    e.enrolled_at
+                 FROM enrollments e
+                 JOIN units u    ON u.id = e.unit_id
+                 LEFT JOIN users lec ON lec.id = u.lecturer_id
+                 WHERE e.student_id   = ?
+                   AND e.academic_year = ?
+                   AND e.semester      = ?
+                   AND u.course_id     = ?
+                 ORDER BY u.name ASC",
+                [$studentId, $p['academic_year'], $p['semester'], $p['course_id']]
+            );
+        }
+        unset($p);
+
+        return $periods;
+    }
+
+    /**
+     * Get all course enrollments for the admin enrollment page,
+     * with counts for a given academic period.
+     *
+     * @param  string $academicYear
+     * @param  int    $semester
+     * @param  string $search       Optional name/reg filter
+     * @return array
+     */
+    public static function getCourseEnrollmentList(
+        string $academicYear,
+        int    $semester,
+        string $search = ''
+    ): array {
+        $params = [$academicYear, $semester];
+        $where  = '';
+
+        if ($search !== '') {
+            $like   = '%' . $search . '%';
+            $where  = " AND (u.full_name LIKE ? OR u.reg_number LIKE ?)";
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        return DB::rows(
+            "SELECT
+                sce.id,
+                sce.student_id,
+                sce.year_of_study,
+                sce.source,
+                sce.enrolled_at,
+                u.reg_number,
+                u.full_name,
+                c.id   AS course_id,
+                c.code AS course_code,
+                c.name AS course_name,
+                (SELECT COUNT(*) FROM enrollments e
+                 JOIN units un ON un.id = e.unit_id
+                 WHERE e.student_id   = sce.student_id
+                   AND e.academic_year = sce.academic_year
+                   AND e.semester      = sce.semester
+                   AND un.course_id    = sce.course_id) AS unit_count
+             FROM student_course_enrollments sce
+             JOIN users   u ON u.id   = sce.student_id
+             JOIN courses c ON c.id   = sce.course_id
+             WHERE sce.academic_year = ? AND sce.semester = ?{$where}
+             ORDER BY u.full_name ASC",
+            $params
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Dashboard summaries
     // ─────────────────────────────────────────────────────────────────────────
 

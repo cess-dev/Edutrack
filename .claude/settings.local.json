@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l backend/models/UserModel.php)",
+      "Bash(php -l api/admin/enrollment_bulk.php)",
+      "Bash(php -l api/admin/enrollment_add.php)",
+      "Bash(php -l api/admin/enrollment_remove.php)",
+      "Bash(php -l api/admin/unit_create.php)"
+    ]
+  }
+}

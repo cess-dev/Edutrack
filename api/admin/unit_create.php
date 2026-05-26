@@ -15,6 +15,7 @@ defined('EDUTRACK_LOADED') or define('EDUTRACK_LOADED', true);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
+require_once __DIR__ . '/../../backend/models/UserModel.php';
 
 Auth::startSession();
 header('Content-Type: application/json; charset=utf-8');
@@ -70,14 +71,58 @@ $id = DB::insert(
     [$courseId, $code, $name, $semester, $year, $credits, $lecturerId]
 );
 
+// ── Auto-enroll students already course-enrolled for this combination ─────────
+// Any student who has a student_course_enrollments record for this course,
+// year_of_study, and semester should automatically get a unit enrollment row.
+// We use the active academic_year from system settings.
+$activeAcademicYear = DB::row(
+    "SELECT setting_value FROM system_settings WHERE setting_key = 'academic_year'"
+)['setting_value'] ?? '';
+
+$autoEnrolled = 0;
+if ($activeAcademicYear !== '') {
+    $courseStudents = DB::rows(
+        "SELECT student_id, academic_year
+         FROM student_course_enrollments
+         WHERE course_id    = ?
+           AND year_of_study = ?
+           AND semester      = ?
+           AND academic_year = ?",
+        [$courseId, $year, $semester, $activeAcademicYear]
+    );
+
+    foreach ($courseStudents as $cs) {
+        $dup = DB::row(
+            "SELECT id FROM enrollments
+             WHERE student_id = ? AND unit_id = ? AND academic_year = ? AND semester = ?",
+            [$cs['student_id'], (int)$id, $cs['academic_year'], $semester]
+        );
+        if (!$dup) {
+            DB::insert(
+                "INSERT INTO enrollments (student_id, unit_id, academic_year, semester)
+                 VALUES (?, ?, ?, ?)",
+                [$cs['student_id'], (int)$id, $cs['academic_year'], $semester]
+            );
+            $autoEnrolled++;
+        }
+    }
+}
+
 Auth::audit('unit_created', 'units', (int)$id, [
-    'course_id' => $courseId,
-    'code'      => $code,
+    'course_id'     => $courseId,
+    'code'          => $code,
+    'auto_enrolled' => $autoEnrolled,
 ]);
+
+$message = "Unit '{$code}' added successfully.";
+if ($autoEnrolled > 0) {
+    $message .= " {$autoEnrolled} existing student(s) auto-enrolled.";
+}
 
 http_response_code(201);
 echo json_encode([
-    'success' => true,
-    'id'      => (int)$id,
-    'message' => "Unit '{$code}' added successfully.",
+    'success'       => true,
+    'id'            => (int)$id,
+    'auto_enrolled' => $autoEnrolled,
+    'message'       => $message,
 ]);

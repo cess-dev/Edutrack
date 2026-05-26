@@ -83,6 +83,12 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
       <span>Transcript</span>
     </a>
 
+    <a href="<?= BASE_URL ?>/parent/history<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
+       class="nav-item <?= parentNavActive('history.php', $currentPage) ?>">
+      <span class="nav-icon">📚</span>
+      <span>Semester History</span>
+    </a>
+
     <div class="nav-section-label">Account</div>
 
     <a href="<?= BASE_URL ?>/parent/profile"

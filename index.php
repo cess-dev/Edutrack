@@ -32,6 +32,7 @@ $routes = [
     'student/transcript'     => 'student/transcript.php',
     'student/scan'           => 'student/scan.php',
     'student/profile'        => 'student/profile.php',
+    'student/history'        => 'student/history.php',
 
     // Admin
     'admin/login'            => 'admin/login.php',
@@ -65,6 +66,7 @@ $routes = [
     'parent/transcript'      => 'parent/transcript.php',
     'parent/attendance'      => 'parent/attendance.php',
     'parent/profile'         => 'parent/profile.php',
+    'parent/history'         => 'parent/history.php',
 
     'error/403'             => 'errors/403.php',
     'error/404'             => 'errors/404.php',

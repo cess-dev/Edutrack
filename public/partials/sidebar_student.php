@@ -77,6 +77,12 @@ $studentPendingDisputes = (int)(DB::row(
       <span>Transcript</span>
     </a>
 
+    <a href="<?= BASE_URL ?>/student/history"
+       class="nav-item <?= studentNavActive('history.php', $currentPage) ?>">
+      <span class="nav-icon">📚</span>
+      <span>Semester History</span>
+    </a>
+
     <div class="nav-section-label">Account</div>
 
     <a href="<?= BASE_URL ?>/student/profile"

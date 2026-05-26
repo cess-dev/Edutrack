@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS `assessments`;
 DROP TABLE IF EXISTS `attendance_logs`;
 DROP TABLE IF EXISTS `attendance_sessions`;
 DROP TABLE IF EXISTS `enrollments`;
+DROP TABLE IF EXISTS `student_course_enrollments`;
 DROP TABLE IF EXISTS `parent_student_links`;
 DROP TABLE IF EXISTS `units`;
 DROP TABLE IF EXISTS `courses`;
@@ -118,9 +119,50 @@ CREATE TABLE `units` (
 
 
 -- =============================================================================
+-- TABLE: student_course_enrollments
+-- Master enrollment record: links a student to a course for a given
+-- academic year, semester, and year of study.
+-- Unit-level enrollments (enrollments table) are DERIVED from this table.
+-- When a new unit is added to a course, all students with a matching
+-- student_course_enrollments record are auto-enrolled in that unit.
+-- =============================================================================
+CREATE TABLE `student_course_enrollments` (
+    `id`            INT UNSIGNED    NOT NULL AUTO_INCREMENT,
+    `student_id`    INT UNSIGNED    NOT NULL,
+    `course_id`     INT UNSIGNED    NOT NULL,
+    `year_of_study` TINYINT         NOT NULL COMMENT '1–6 matching the course duration',
+    `academic_year` VARCHAR(12)     NOT NULL COMMENT 'e.g. 2025/2026 — pulled from system settings',
+    `semester`      TINYINT         NOT NULL DEFAULT 1,
+    `source`        ENUM('manual','csv') NOT NULL DEFAULT 'manual',
+    `enrolled_at`   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `enrolled_by`   INT UNSIGNED    DEFAULT NULL COMMENT 'Admin who created this record',
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_sce` (`student_id`, `course_id`, `academic_year`, `semester`),
+    KEY `idx_sce_course_period` (`course_id`, `year_of_study`, `academic_year`, `semester`),
+    KEY `idx_sce_student` (`student_id`),
+
+    CONSTRAINT `fk_sce_student`
+        FOREIGN KEY (`student_id`) REFERENCES `users`(`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT `fk_sce_course`
+        FOREIGN KEY (`course_id`) REFERENCES `courses`(`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT `fk_sce_enrolled_by`
+        FOREIGN KEY (`enrolled_by`) REFERENCES `users`(`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Master record: student enrolled in a course for a specific academic year+semester';
+
+
+-- =============================================================================
 -- TABLE: enrollments
 -- Links students to the units they are registered for in a given academic year.
 -- A student can be enrolled in many units; a unit can have many students.
+-- Rows are derived from student_course_enrollments — do not insert directly
+-- (except via the enrollment model methods which handle both tables atomically).
 -- =============================================================================
 CREATE TABLE `enrollments` (
     `id`            INT UNSIGNED    NOT NULL AUTO_INCREMENT,

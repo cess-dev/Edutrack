@@ -424,5 +424,6 @@ $pageTitle = 'My Attendance';
   </a>
 </nav>
 
+<script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
 </body>
 </html>

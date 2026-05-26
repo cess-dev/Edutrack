@@ -98,9 +98,6 @@ $pageTitle = 'Dashboard';
     <header class="topbar">
       <span class="topbar-title">Dashboard</span>
       <div class="topbar-actions">
-        <span class="text-sm text-muted">
-          <?= htmlspecialchars($academicYear) ?> &nbsp;·&nbsp; Sem <?= $semester ?>
-        </span>
         <a href="<?= BASE_URL ?>/student/scan"
            class="btn btn-primary btn-sm">
           📷 Scan QR

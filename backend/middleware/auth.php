@@ -73,12 +73,13 @@ class Auth
             'lifetime' => SESSION_LIFETIME,
             'path'     => '/',
             'domain'   => '',
-            'secure'   => false,   // true on HTTPS, false on plain HTTP
-            'httponly' => true,                        // JS cannot read the session cookie
+            'secure'   => defined('SESSION_COOKIE_SECURE') ? SESSION_COOKIE_SECURE : false,
+            'httponly' => true,
             'samesite' => 'Lax',
         ]);
 
         session_start();
+        self::sendSecurityHeaders();
 
         // Regenerate the session ID periodically to prevent fixation attacks
         if (!isset($_SESSION['_created'])) {
@@ -88,6 +89,30 @@ class Auth
             session_regenerate_id(true);
             $_SESSION['_created'] = time();
         }
+    }
+
+    private static function sendSecurityHeaders(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('X-XSS-Protection: 1; mode=block');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=(), fullscreen=()');
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
+
+        if (self::isHttps()) {
+            header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+        }
+    }
+
+    private static function isHttps(): bool
+    {
+        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -165,7 +190,7 @@ class Auth
     {
         if (self::isLoggedIn()) {
             $role = self::role();
-            $dest = self::$dashboards[$role] ?? BASE_URL . '/index.php';
+            $dest = self::$dashboards[$role] ?? BASE_URL;
             header('Location: ' . $dest);
             exit;
         }
@@ -335,8 +360,22 @@ class Auth
      */
     public static function verifyCsrf(bool $isApi = false): void
     {
+        // 1. Form POST field (multipart / form-encoded)
+        // 2. Custom request header  (X-CSRF-Token, sent by Ajax.js)
+        // 3. JSON body field        (csrf_token key injected by Ajax.js — reliable
+        //                            fallback when the custom header is stripped by
+        //                            a proxy or server config)
         $submitted = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        $stored    = $_SESSION['csrf_token'] ?? '';
+
+        if (empty($submitted)) {
+            $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+            if (str_contains($contentType, 'application/json')) {
+                $json      = json_decode(file_get_contents('php://input'), true);
+                $submitted = is_array($json) ? ($json['csrf_token'] ?? '') : '';
+            }
+        }
+
+        $stored = $_SESSION['csrf_token'] ?? '';
 
         if (!$stored || !hash_equals($stored, $submitted)) {
             if ($isApi) {

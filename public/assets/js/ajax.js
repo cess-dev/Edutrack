@@ -80,8 +80,16 @@ const Api = (() => {
       options.headers = options.headers || {};
 
       if (!(options.body instanceof FormData)) {
-        // JSON requests: add header
+        // JSON requests: send token in header AND inject into the body so PHP
+        // has a reliable fallback even if the custom header is stripped.
         options.headers['X-CSRF-Token'] = csrfToken || '';
+        if (options.body) {
+          try {
+            const bodyObj = JSON.parse(options.body);
+            bodyObj.csrf_token = csrfToken || '';
+            options.body = JSON.stringify(bodyObj);
+          } catch (_) { /* not JSON — leave body unchanged */ }
+        }
       } else {
         // Multipart: append to FormData body instead (header blocked by browser)
         options.body.append('csrf_token', csrfToken || '');
@@ -303,8 +311,18 @@ const Api = (() => {
   function _handleSessionExpiry() {
     clearInterval(sessionCheckTimer);
     Toast.show('error', 'Your session has expired. Redirecting to login...');
+
+    // Determine the correct portal login page from the current URL path
+    // so the ?expired=1 banner shows on the right login screen
+    const path = window.location.pathname;
+    let loginUrl = `${BASE_URL}?expired=1`;
+    if      (/\/admin\//.test(path))    loginUrl = `${BASE_URL}/admin/login?expired=1`;
+    else if (/\/lecturer\//.test(path)) loginUrl = `${BASE_URL}/lecturer/login?expired=1`;
+    else if (/\/student\//.test(path))  loginUrl = `${BASE_URL}/student/login?expired=1`;
+    else if (/\/parent\//.test(path))   loginUrl = `${BASE_URL}/parent/login?expired=1`;
+
     setTimeout(() => {
-      window.location.href = `${BASE_URL}/index.php?expired=1`;
+      window.location.href = loginUrl;
     }, 2000);
   }
 
@@ -459,6 +477,78 @@ const Toast = (() => {
   return { show };
 })();
 
+function _setSidebarToggleIcon(isOpen) {
+  const toggle = document.querySelector('.topbar-toggle');
+  if (!toggle) {
+    return;
+  }
+
+  if (isOpen) {
+    toggle.innerHTML = '✕';
+    toggle.setAttribute('aria-label', 'Close navigation menu');
+  } else {
+    toggle.innerHTML = '☰';
+    toggle.setAttribute('aria-label', 'Open navigation menu');
+  }
+}
+
+function _closeMobileSidebar() {
+  document.body.classList.remove('sidebar-open');
+  _setSidebarToggleIcon(false);
+  const toggle = document.querySelector('.topbar-toggle');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+}
+
+function _toggleMobileSidebar() {
+  const open = document.body.classList.toggle('sidebar-open');
+  _setSidebarToggleIcon(open);
+  const toggle = document.querySelector('.topbar-toggle');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(open));
+  }
+}
+
+function _initMobileSidebar() {
+  const topbar = document.querySelector('.topbar');
+  const sidebar = document.querySelector('.sidebar');
+  if (!topbar || !sidebar) {
+    return;
+  }
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'topbar-toggle';
+  toggle.setAttribute('aria-label', 'Open navigation menu');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.textContent = '☰';
+
+  topbar.insertBefore(toggle, topbar.firstElementChild || topbar.firstChild);
+  toggle.addEventListener('click', _toggleMobileSidebar);
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sidebar-backdrop';
+  backdrop.setAttribute('data-sidebar-backdrop', '');
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', _closeMobileSidebar);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+      _closeMobileSidebar();
+    }
+  });
+
+  document.querySelectorAll('.sidebar .nav-item').forEach((item) => {
+    item.addEventListener('click', _closeMobileSidebar);
+  });
+
+  // Dedicated close button inside the sidebar brand bar
+  document.querySelectorAll('.sidebar-close-btn').forEach((btn) => {
+    btn.addEventListener('click', _closeMobileSidebar);
+  });
+}
+
 
 // =============================================================================
 // Auto-initialise when the DOM is ready
@@ -468,4 +558,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('meta[name="csrf-token"]')) {
     Api.init();
   }
+
+  _initMobileSidebar();
 });

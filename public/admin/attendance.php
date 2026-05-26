@@ -252,5 +252,6 @@ $pageTitle = 'Attendance Overview';
   </div><!-- /main -->
 </div><!-- /layout -->
 
+<script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
 </body>
 </html>

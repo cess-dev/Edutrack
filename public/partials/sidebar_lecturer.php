@@ -32,6 +32,7 @@ $pendingDisputes = (int)(DB::row(
       <div class="brand-name"><?= htmlspecialchars(APP_NAME) ?></div>
       <div class="brand-role">Lecturer Portal</div>
     </div>
+    <button type="button" class="sidebar-close-btn" aria-label="Close navigation">✕</button>
   </div>
 
   <!-- Navigation -->

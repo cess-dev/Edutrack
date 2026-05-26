@@ -27,6 +27,7 @@ $activeSessions = (int)(DB::row(
       <div class="brand-name"><?= htmlspecialchars(APP_NAME) ?></div>
       <div class="brand-role">Admin Panel</div>
     </div>
+    <button type="button" class="sidebar-close-btn" aria-label="Close navigation">✕</button>
   </div>
 
   <nav class="nav" aria-label="Admin navigation">

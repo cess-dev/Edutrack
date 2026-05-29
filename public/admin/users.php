@@ -52,6 +52,21 @@ $roleCounts['all'] = array_sum($roleCounts);
 // ── Lecturer options for unit assignment dropdowns ───────────────────────────
 $lecturers = UserModel::getLecturerOptions();
 
+// ── Pending password reset requests ──────────────────────────────────────────
+// Wrapped in try/catch: table may not exist if migration hasn't been run yet.
+try {
+    $pendingResets = DB::rows(
+        "SELECT r.id, r.created_at,
+                u.full_name, u.reg_number, u.email, u.role
+         FROM password_reset_requests r
+         JOIN users u ON u.id = r.user_id
+         WHERE r.status = 'pending'
+         ORDER BY r.created_at ASC"
+    );
+} catch (PDOException $e) {
+    $pendingResets = []; // table not created yet — silently skip
+}
+
 $csrfToken = Auth::csrfToken();
 $pageTitle = 'User Management';
 ?>
@@ -77,6 +92,9 @@ $pageTitle = 'User Management';
         <button class="btn btn-secondary btn-sm" onclick="openBulkLecturersModal()">
           📋 Bulk Add Lecturers
         </button>
+        <button class="btn btn-secondary btn-sm" onclick="openBulkStudentsModal()">
+          📋 Bulk Add Students
+        </button>
         <button class="btn btn-secondary btn-sm" onclick="openBulkParentsModal()">
           📋 Bulk Add Parents
         </button>
@@ -90,6 +108,109 @@ $pageTitle = 'User Management';
     </header>
 
     <div class="page-content">
+
+      <!-- ── Pending Password Reset Requests ─────────────────────────────── -->
+      <?php if (!empty($pendingResets)): ?>
+      <div class="card animate-fade-in"
+           style="margin-bottom:var(--space-5);border-left:3px solid var(--color-warning,#D97706)">
+        <div style="padding:var(--space-4) var(--space-5)">
+          <div style="display:flex;align-items:center;gap:var(--space-3);
+                      margin-bottom:var(--space-3)">
+            <span style="font-size:1.2rem">🔐</span>
+            <strong style="font-size:var(--text-sm)">
+              <?= count($pendingResets) ?> Pending Password Reset
+              <?= count($pendingResets) === 1 ? 'Request' : 'Requests' ?>
+            </strong>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;font-size:var(--text-sm);border-collapse:collapse">
+              <thead>
+                <tr style="color:var(--color-text-muted);text-align:left;
+                           border-bottom:1px solid var(--color-border)">
+                  <th style="padding:6px 12px 6px 0">User</th>
+                  <th style="padding:6px 12px">Reg. No.</th>
+                  <th style="padding:6px 12px">Role</th>
+                  <th style="padding:6px 12px">Requested</th>
+                  <th style="padding:6px 12px">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($pendingResets as $pr): ?>
+                <tr id="reset-row-<?= $pr['id'] ?>"
+                    style="border-bottom:1px solid var(--color-border-light)">
+                  <td style="padding:8px 12px 8px 0">
+                    <div class="font-medium"><?= htmlspecialchars($pr['full_name']) ?></div>
+                    <?php if ($pr['email']): ?>
+                      <div class="text-xs text-muted"><?= htmlspecialchars($pr['email']) ?></div>
+                    <?php else: ?>
+                      <div class="text-xs text-warning">No email on file</div>
+                    <?php endif; ?>
+                  </td>
+                  <td style="padding:8px 12px;font-family:monospace">
+                    <?= htmlspecialchars($pr['reg_number']) ?>
+                  </td>
+                  <td style="padding:8px 12px">
+                    <span class="badge badge-<?= $pr['role'] === 'student' ? 'success' : ($pr['role'] === 'lecturer' ? 'info' : 'warning') ?>">
+                      <?= ucfirst($pr['role']) ?>
+                    </span>
+                  </td>
+                  <td style="padding:8px 12px;color:var(--color-text-muted)">
+                    <?= date('d M Y H:i', strtotime($pr['created_at'])) ?>
+                  </td>
+                  <td style="padding:8px 12px">
+                    <div style="display:flex;gap:var(--space-2)">
+                      <button class="btn btn-primary btn-sm"
+                              onclick="approveReset(<?= $pr['id'] ?>, '<?= htmlspecialchars($pr['full_name'], ENT_QUOTES) ?>')">
+                        Approve
+                      </button>
+                      <button class="btn btn-ghost btn-sm"
+                              style="color:var(--color-danger)"
+                              onclick="rejectReset(<?= $pr['id'] ?>, '<?= htmlspecialchars($pr['full_name'], ENT_QUOTES) ?>')">
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <!-- ── Approve-result modal ───────────────────────────────────────────── -->
+      <div class="modal-backdrop" id="reset-result-modal" hidden>
+        <div class="modal" style="max-width:440px">
+          <div class="modal-header">
+            <h2 class="modal-title">🔐 Reset Approved</h2>
+            <button class="modal-close" onclick="closeModal('reset-result-modal')">✕</button>
+          </div>
+          <div class="modal-body">
+            <p class="text-sm text-muted" style="margin-bottom:var(--space-4)">
+              Share this temporary password with
+              <strong id="rr-name"></strong>.
+              They will be prompted to change it on next login.
+            </p>
+            <div style="background:var(--color-bg-subtle);border:2px solid var(--color-accent);
+                        border-radius:var(--radius-md);padding:var(--space-4);text-align:center">
+              <div style="font-size:var(--text-xs);color:var(--color-text-muted);
+                          margin-bottom:var(--space-2)">Temporary Password</div>
+              <code id="rr-pass"
+                    style="font-size:var(--text-lg);font-weight:700;
+                           color:var(--color-accent);letter-spacing:1px"></code>
+            </div>
+            <div id="rr-email-note" style="display:none;margin-top:var(--space-3)">
+              <div class="alert alert-success" style="font-size:var(--text-xs)">
+                ✉️ Temporary password has been emailed to the user.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('reset-result-modal')">Done</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Role filter tabs -->
       <div class="role-filter-tabs animate-fade-in"
@@ -634,6 +755,86 @@ $pageTitle = 'User Management';
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('bulk-lec-modal')">Close</button>
       <button class="btn btn-primary" id="bl-lec-btn" onclick="bulkAddLecturers()">
+        Upload &amp; Create
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Bulk Add Students Modal ───────────────────────────────────────────── -->
+<div class="modal-backdrop" id="bulk-stu-modal" hidden>
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2 class="modal-title">📋 Bulk Add Students</h2>
+      <button class="modal-close" onclick="closeModal('bulk-stu-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div data-error-container="bulk-stu"
+           class="alert alert-error" style="margin-bottom:var(--space-4)"></div>
+
+      <div class="alert alert-info" style="margin-bottom:var(--space-5)">
+        <span class="alert-icon">ℹ</span>
+        <div>
+          Upload a CSV — one student per row. Provide the Student ID explicitly
+          (e.g. STU2025001). Default password: <strong>Student@1</strong>
+          — each student will be prompted to change it on first login.
+          <br><br>
+          <code style="font-size:12px;background:var(--color-bg-subtle);
+                        padding:4px 8px;border-radius:4px;display:inline-block">
+            reg_number, full_name, email, phone
+          </code>
+          <br>
+          <span class="text-xs text-muted" style="display:block;margin-top:var(--space-2)">
+            email and phone are optional. Rows with duplicate or missing reg_numbers are skipped.
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">CSV File <span class="required">*</span></label>
+        <input type="file" id="bl-stu-csv" class="form-control" accept=".csv,text/csv">
+      </div>
+
+      <!-- Credentials report (shown after upload) -->
+      <div id="bl-stu-result" style="display:none;margin-top:var(--space-4)">
+        <div id="bl-stu-summary" class="alert alert-success"
+             style="margin-bottom:var(--space-3)"></div>
+        <div id="bl-stu-creds" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      margin-bottom:var(--space-2)">
+            <p class="text-sm font-medium">📄 Credentials to distribute:</p>
+            <button class="btn btn-ghost btn-sm" onclick="printCreds('stu')">🖨 Print</button>
+          </div>
+          <div style="max-height:260px;overflow-y:auto;
+                      border:1px solid var(--color-border);border-radius:var(--radius-md)">
+            <table id="bl-stu-creds-table"
+                   style="width:100%;font-size:12px;border-collapse:collapse">
+              <thead style="background:var(--color-bg-subtle);position:sticky;top:0">
+                <tr>
+                  <th style="padding:8px;text-align:left">Name</th>
+                  <th style="padding:8px;text-align:left">Student ID</th>
+                  <th style="padding:8px;text-align:left">Email / Phone</th>
+                  <th style="padding:8px;text-align:left">Temp Password</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="bl-stu-errors" style="display:none;margin-top:var(--space-3)">
+          <p class="text-sm font-medium text-danger" style="margin-bottom:var(--space-2)">
+            ❌ Rows skipped:
+          </p>
+          <ul id="bl-stu-errors-list"
+              style="font-size:12px;color:var(--color-danger);padding-left:var(--space-4);
+                     list-style:disc;line-height:1.8"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bulk-stu-modal')">Close</button>
+      <button class="btn btn-primary" id="bl-stu-btn" onclick="bulkAddStudents()">
         Upload &amp; Create
       </button>
     </div>
@@ -1202,6 +1403,33 @@ function escHtml(str) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Bulk Add Students ─────────────────────────────────────────────────────────
+function openBulkStudentsModal() {
+  clearErr('bulk-stu');
+  document.getElementById('bl-stu-csv').value     = null;
+  document.getElementById('bl-stu-result').style.display = 'none';
+  openModal('bulk-stu-modal');
+}
+
+async function bulkAddStudents() {
+  clearErr('bulk-stu');
+  const csvFile = document.getElementById('bl-stu-csv').files[0];
+  const btn     = document.getElementById('bl-stu-btn');
+  if (!csvFile) { setErr('bulk-stu', 'Please select a CSV file.'); return; }
+
+  document.getElementById('bl-stu-result').style.display = 'none';
+  const fd = new FormData();
+  fd.append('csv_file', csvFile);
+
+  await Api.withLoading(btn, async () => {
+    try {
+      const data = await Api.upload(`${BASE_URL}/api/admin/users_bulk_students.php`, fd);
+      _showBulkResult('stu', data);
+      if (data.created > 0) setTimeout(() => window.location.reload(), 4000);
+    } catch (err) { setErr('bulk-stu', err.message); }
+  });
+}
+
 // ── Bulk Add Lecturers ────────────────────────────────────────────────────────
 function openBulkLecturersModal() {
   clearErr('bulk-lec');
@@ -1307,7 +1535,9 @@ function _showBulkResult(type, data) {
 // ── Print credentials table ───────────────────────────────────────────────────
 function printCreds(type) {
   const table = document.getElementById(`bl-${type}-creds-table`);
-  const title = type === 'lec' ? 'Lecturer Credentials' : 'Parent Credentials';
+  const title = type === 'lec' ? 'Lecturer Credentials'
+              : type === 'stu' ? 'Student Credentials'
+              : 'Parent Credentials';
   const win   = window.open('', '_blank');
   win.document.write(`
     <html><head><title>${title}</title>
@@ -1325,6 +1555,49 @@ function printCreds(type) {
     </body></html>`);
   win.document.close();
   win.print();
+}
+
+// ── Password Reset Requests ───────────────────────────────────────────────────
+async function approveReset(requestId, name) {
+  if (!confirm(`Approve password reset for ${name}? A temporary password will be generated.`)) return;
+
+  try {
+    const data = await Api.post(`${BASE_URL}/api/admin/password_reset_approve.php`, {
+      request_id: requestId,
+      action:     'approve',
+    });
+
+    // Remove the row from the pending table
+    const row = document.getElementById(`reset-row-${requestId}`);
+    if (row) row.remove();
+
+    // Show the generated temp password in a modal
+    document.getElementById('rr-name').textContent = name;
+    document.getElementById('rr-pass').textContent = data.temp_pass;
+    const emailNote = document.getElementById('rr-email-note');
+    emailNote.style.display = data.emailed ? 'block' : 'none';
+    openModal('reset-result-modal');
+
+    Toast.show('success', data.message);
+  } catch (err) {
+    Api.showError(err);
+  }
+}
+
+async function rejectReset(requestId, name) {
+  if (!confirm(`Reject the password reset request for ${name}?`)) return;
+
+  try {
+    const data = await Api.post(`${BASE_URL}/api/admin/password_reset_approve.php`, {
+      request_id: requestId,
+      action:     'reject',
+    });
+    const row = document.getElementById(`reset-row-${requestId}`);
+    if (row) row.remove();
+    Toast.show('success', data.message);
+  } catch (err) {
+    Api.showError(err);
+  }
 }
 
 // ── Bulk Link Parents ─────────────────────────────────────────────────────────

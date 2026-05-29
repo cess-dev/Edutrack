@@ -68,6 +68,10 @@ $routes = [
     'parent/profile'         => 'parent/profile.php',
     'parent/history'         => 'parent/history.php',
 
+    // Auth (shared across portals)
+    'auth/forgot-password'  => 'auth/forgot_password.php',
+    'auth/reset-password'   => 'auth/reset_password.php',
+
     'error/403'             => 'errors/403.php',
     'error/404'             => 'errors/404.php',
     'error/500'             => 'errors/500.php',

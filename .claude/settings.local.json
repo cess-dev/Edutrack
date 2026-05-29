@@ -14,7 +14,20 @@
       "Bash(php -l \"c:/xampp/htdocs/edutrack/api/admin/users_bulk_lecturers.php\")",
       "Bash(php -l \"c:/xampp/htdocs/edutrack/api/admin/users_bulk_parents.php\")",
       "Bash(php -l \"c:/xampp/htdocs/edutrack/backend/middleware/auth.php\")",
-      "Bash(php -l \"c:/xampp/htdocs/edutrack/backend/models/UserModel.php\")"
+      "Bash(php -l \"c:/xampp/htdocs/edutrack/backend/models/UserModel.php\")",
+      "Bash(php -l c:/xampp/htdocs/edutrack/config/config.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/backend/services/EmailService.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/api/auth/forgot_password.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/api/auth/reset_password.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/api/admin/password_reset_approve.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/public/admin/users.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/public/student/login.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/public/lecturer/login.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/public/parent/login.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/public/admin/login.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/api/auth/login.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/api/auth/verify_otp.php)",
+      "Bash(php -l c:/xampp/htdocs/edutrack/backend/middleware/auth.php)"
     ]
   }
 }

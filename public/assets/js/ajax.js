@@ -106,6 +106,14 @@ const Api = (() => {
       throw new ApiError(0, 'Network error. Please check your connection.', null);
     }
 
+    // Sync rotated CSRF token — server sends the new token after every verified POST
+    const newCsrf = response.headers.get('X-New-CSRF-Token');
+    if (newCsrf) {
+      csrfToken = newCsrf;
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta) meta.setAttribute('content', csrfToken);
+    }
+
     // Session expired — redirect to login
     if (response.status === 401) {
       _handleSessionExpiry();

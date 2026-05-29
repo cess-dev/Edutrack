@@ -262,6 +262,29 @@ class Auth
     }
 
     /**
+     * Complete a login for a user whose credentials have already been verified
+     * (e.g. after OTP confirmation).  Mirrors the session-write done by attempt()
+     * without re-fetching from the database or re-hashing the password.
+     *
+     * @param array $user  Row from the users table (must include id, reg_number,
+     *                     full_name, email, role, must_change_password)
+     */
+    public static function loginAsUser(array $user): void
+    {
+        session_regenerate_id(true);
+
+        $_SESSION['user_id']              = $user['id'];
+        $_SESSION['reg_number']           = $user['reg_number'];
+        $_SESSION['full_name']            = $user['full_name'];
+        $_SESSION['email']                = $user['email'];
+        $_SESSION['role']                 = $user['role'];
+        $_SESSION['must_change_password'] = (bool)($user['must_change_password'] ?? false);
+        $_SESSION['_created']             = time();
+
+        self::audit('user_login', 'users', $user['id']);
+    }
+
+    /**
      * Destroy the session and send the user to the login page for their role.
      */
     public static function logout(): void
@@ -410,9 +433,13 @@ class Auth
             if ($isApi) {
                 http_response_code(419);
                 header('Content-Type: application/json');
+                // Send the current valid token so JS can self-heal without a page reload
+                if ($stored && !headers_sent()) {
+                    header('X-New-CSRF-Token: ' . $stored);
+                }
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Invalid or expired CSRF token. Please refresh the page.'
+                    'message' => 'Invalid or expired CSRF token. Please try again.'
                 ]);
                 exit;
             }
@@ -421,8 +448,13 @@ class Auth
             exit('Invalid CSRF token. Please go back and try again.');
         }
 
-        // Rotate the token after each verified POST to prevent re-use
+        // Rotate the token after each verified POST to prevent token reuse
         $_SESSION['csrf_token'] = bin2hex(random_bytes(CSRF_TOKEN_BYTES));
+
+        // Return the new token in a header so JS can update without a page reload
+        if (!headers_sent()) {
+            header('X-New-CSRF-Token: ' . $_SESSION['csrf_token']);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

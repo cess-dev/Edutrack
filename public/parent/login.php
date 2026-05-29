@@ -101,59 +101,75 @@ $schoolName = DB::row(
 
       <div data-error-container class="alert alert-error" style="margin-bottom:var(--space-5)"></div>
 
-      <form id="login-form" method="POST" novalidate>
-
-        <div class="form-group">
-          <label class="form-label" for="reg_number">
-            Email or Account ID <span class="required">*</span>
-          </label>
-          <input type="text"
-                 id="reg_number"
-                 name="reg_number"
-                 class="form-control"
-                 value="<?= htmlspecialchars($regNumber) ?>"
-                 placeholder="e.g. mary.kariuki@gmail.com or PAR001"
-                 autocomplete="username"
-                 autocapitalize="none"
-                 required
-                 autofocus>
-          <div class="form-hint">
-            Use the email address you gave the school, or the account ID from your welcome letter.
+      <!-- Step 1: credentials -->
+      <div id="step-credentials">
+        <form id="login-form" method="POST" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="reg_number">
+              Email or Account ID <span class="required">*</span>
+            </label>
+            <input type="text" id="reg_number" name="reg_number" class="form-control"
+                   value="<?= htmlspecialchars($regNumber) ?>"
+                   placeholder="e.g. mary.kariuki@gmail.com or PAR001"
+                   autocomplete="username" autocapitalize="none" required autofocus>
+            <div class="form-hint">
+              Use the email you gave the school, or the account ID from your welcome letter.
+            </div>
           </div>
+          <div class="form-group">
+            <label class="form-label" for="password">Password <span class="required">*</span></label>
+            <div class="password-field">
+              <input type="password" id="password" name="password" class="form-control"
+                     placeholder="Enter your password" autocomplete="current-password" required>
+              <button type="button" class="password-toggle"
+                      onclick="togglePassword()" aria-label="Toggle password">
+                <span id="eye-icon">👁</span>
+              </button>
+            </div>
+          </div>
+          <div id="attempts-warning" class="text-xs text-warning"
+               style="display:none;margin-bottom:var(--space-3)"></div>
+          <button type="submit" id="login-btn"
+                  class="btn btn-primary btn-full btn-lg"
+                  style="margin-top:var(--space-2)">Sign In</button>
+          <div style="margin-top:var(--space-4);text-align:center">
+            <a href="<?= BASE_URL ?>/auth/forgot-password?role=parent"
+               class="text-sm text-muted" style="text-decoration:none">
+              Forgot your password?
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 2: OTP -->
+      <div id="step-otp" style="display:none">
+        <div class="alert alert-info" style="margin-bottom:var(--space-5)">
+          <span class="alert-icon">✉️</span>
+          <span id="otp-hint-msg">A 6-digit code has been sent to your email.</span>
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="password">
-            Password <span class="required">*</span>
-          </label>
-          <div class="password-field">
-            <input type="password"
-                   id="password"
-                   name="password"
-                   class="form-control"
-                   placeholder="Enter your password"
-                   autocomplete="current-password"
-                   required>
-            <button type="button" class="password-toggle"
-                    onclick="togglePassword()" aria-label="Toggle password">
-              <span id="eye-icon">👁</span>
-            </button>
+        <div data-error-container="otp" class="alert alert-error"
+             style="margin-bottom:var(--space-4)"></div>
+        <form id="otp-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="otp-input">
+              Verification Code <span class="required">*</span>
+            </label>
+            <input type="text" id="otp-input" class="form-control"
+                   placeholder="Enter 6-digit code" maxlength="6"
+                   inputmode="numeric" autocomplete="one-time-code"
+                   style="font-size:1.4rem;letter-spacing:6px;text-align:center">
           </div>
-          <div class="form-hint">
-            Contact the school office if you have forgotten your password.
-          </div>
+          <button type="submit" id="otp-btn"
+                  class="btn btn-primary btn-full btn-lg"
+                  style="margin-top:var(--space-2)">Verify Code</button>
+        </form>
+        <div style="margin-top:var(--space-4);text-align:center">
+          <a href="#" onclick="showCredentials()"
+             class="text-sm text-muted" style="text-decoration:none">
+            ← Back / Resend code
+          </a>
         </div>
-
-        <div id="attempts-warning" class="text-xs text-warning"
-             style="display:none;margin-bottom:var(--space-3)"></div>
-
-        <button type="submit" id="login-btn"
-                class="btn btn-primary btn-full btn-lg"
-                style="margin-top:var(--space-2)">
-          Sign In
-        </button>
-
-      </form>
+      </div>
 
       <div class="portal-switcher">
         <p class="text-sm text-muted">Looking for another portal?</p>
@@ -173,58 +189,75 @@ $schoolName = DB::row(
 <script>
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
 
+const PORTAL_ROLE    = 'parent';
+const errorContainer = document.querySelector('[data-error-container]');
+const attemptsWarn   = document.getElementById('attempts-warning');
+
+function showCredentials() {
+  document.getElementById('step-otp').style.display         = 'none';
+  document.getElementById('step-credentials').style.display = 'block';
+  document.getElementById('otp-input').value = '';
+  clearOtpErr();
+}
+function clearOtpErr() { const el = document.querySelector('[data-error-container="otp"]'); el.textContent = ''; el.hidden = true; }
+function setOtpErr(msg) { const el = document.querySelector('[data-error-container="otp"]'); el.textContent = msg; el.hidden = false; }
+
 document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-
-  const errorContainer = document.querySelector('[data-error-container]');
-  const attemptsWarn   = document.getElementById('attempts-warning');
-  errorContainer.textContent = '';
-  errorContainer.hidden = true;
+  errorContainer.textContent = ''; errorContainer.hidden = true;
   attemptsWarn.style.display = 'none';
 
   const regNumber = document.getElementById('reg_number').value.trim();
   const password  = document.getElementById('password').value;
   const btn       = document.getElementById('login-btn');
 
-  if (!regNumber || !password) {
-    errorContainer.textContent = 'Please fill in all fields.';
-    errorContainer.hidden = false;
-    return;
-  }
+  if (!regNumber || !password) { errorContainer.textContent = 'Please fill in all fields.'; errorContainer.hidden = false; return; }
 
   await Api.withLoading(btn, async () => {
     try {
-      const data = await Api.post(`${BASE_URL}/api/auth/login.php`, {
-        reg_number: regNumber,
-        password:   password,
-      });
+      const data = await Api.post(`${BASE_URL}/api/auth/login.php`, { reg_number: regNumber, password });
 
-      if (data.success) {
-        if (data.user.role !== 'parent') {
-          errorContainer.textContent =
-            `This is the Parent Portal. Please use the ${data.user.role} portal link below.`;
-          errorContainer.hidden = false;
-          await fetch(`${BASE_URL}/api/auth/logout.php`);
-          return;
-        }
-        btn.innerHTML = '✓ Redirecting...';
-        btn.style.background = 'var(--color-success)';
-        setTimeout(() => { window.location.href = data.redirect; }, 600);
+      if (data.step === 'otp') {
+        document.getElementById('otp-hint-msg').textContent = data.message;
+        document.getElementById('step-credentials').style.display = 'none';
+        document.getElementById('step-otp').style.display         = 'block';
+        setTimeout(() => document.getElementById('otp-input').focus(), 100);
+        return;
       }
 
+      if (data.user.role !== PORTAL_ROLE) {
+        errorContainer.textContent = `This is the Parent Portal. Please use the ${data.user.role} portal.`;
+        errorContainer.hidden = false;
+        await fetch(`${BASE_URL}/api/auth/logout.php`); return;
+      }
+      btn.innerHTML = '✓ Redirecting...'; btn.style.background = 'var(--color-success)';
+      setTimeout(() => { window.location.href = data.redirect; }, 600);
     } catch (err) {
       const body = err.body || {};
-      if (body.attempts_remaining !== undefined) {
-        attemptsWarn.textContent =
-          `${body.attempts_remaining} attempt(s) remaining before lockout.`;
-        attemptsWarn.style.display = 'block';
-      }
-      errorContainer.textContent = err.message || 'Login failed.';
-      errorContainer.hidden = false;
+      if (body.attempts_remaining !== undefined) { attemptsWarn.textContent = `${body.attempts_remaining} attempt(s) remaining.`; attemptsWarn.style.display = 'block'; }
+      errorContainer.textContent = err.message || 'Login failed.'; errorContainer.hidden = false;
+      document.getElementById('login-form').classList.add('shake');
+      setTimeout(() => document.getElementById('login-form').classList.remove('shake'), 500);
+    }
+  });
+});
 
-      const form = document.getElementById('login-form');
-      form.classList.add('shake');
-      setTimeout(() => form.classList.remove('shake'), 500);
+document.getElementById('otp-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearOtpErr();
+  const otp = document.getElementById('otp-input').value.trim();
+  const btn = document.getElementById('otp-btn');
+  if (!otp || otp.length !== 6) { setOtpErr('Please enter the 6-digit code.'); return; }
+
+  await Api.withLoading(btn, async () => {
+    try {
+      const data = await Api.post(`${BASE_URL}/api/auth/verify_otp.php`, { otp });
+      if (data.user.role !== PORTAL_ROLE) { setOtpErr(`This is the Parent Portal. Use the correct portal.`); await fetch(`${BASE_URL}/api/auth/logout.php`); return; }
+      btn.innerHTML = '✓ Verified — redirecting...'; btn.style.background = 'var(--color-success)';
+      setTimeout(() => { window.location.href = data.redirect; }, 600);
+    } catch (err) {
+      if (err.body?.expired) { showCredentials(); }
+      setOtpErr(err.message || 'Verification failed.');
     }
   });
 });

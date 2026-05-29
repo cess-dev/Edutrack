@@ -115,40 +115,67 @@ class UserModel
     /**
      * Bulk-create student accounts from a CSV array.
      * Each row must have: reg_number, full_name, email (optional), phone (optional).
-     * A default password is generated for each student.
+     * A default password is assigned; students are prompted to change it on first login.
      *
      * @param  array  $rows        Array of associative arrays from CSV parse
      * @param  int    $createdBy   Admin user ID
      * @param  string $defaultPass Default password for all new students
-     * @return array { saved: int, skipped: int, errors: array }
+     * @return array {
+     *   created:  int,
+     *   skipped:  int,
+     *   errors:   array,
+     *   accounts: array  — newly created accounts for the credentials report
+     * }
      */
     public static function bulkCreateStudents(
         array  $rows,
         int    $createdBy,
         string $defaultPass = 'Student@1'
     ): array {
-        $result = ['saved' => 0, 'skipped' => 0, 'errors' => []];
+        $result = ['created' => 0, 'skipped' => 0, 'errors' => [], 'accounts' => []];
 
         foreach ($rows as $i => $row) {
-            $rowNum = $i + 2; // Account for header row
+            $rowNum    = $i + 2; // header is row 1
+            $regNumber = strtoupper(trim($row['reg_number'] ?? ''));
+            $fullName  = trim($row['full_name'] ?? '');
+            $email     = trim($row['email']     ?? '') ?: null;
+            $phone     = trim($row['phone']     ?? '') ?: null;
+
+            if (empty($regNumber)) {
+                $result['errors'][] = [
+                    'row'    => $rowNum,
+                    'name'   => $fullName ?: '(blank)',
+                    'reason' => 'reg_number is required.',
+                ];
+                $result['skipped']++;
+                continue;
+            }
 
             $res = self::create([
-                'reg_number' => $row['reg_number']  ?? '',
-                'full_name'  => $row['full_name']   ?? '',
-                'email'      => $row['email']        ?? '',
-                'phone'      => $row['phone']        ?? '',
-                'password'   => $defaultPass,
-                'role'       => 'student',
-                'created_by' => $createdBy,
+                'reg_number'           => $regNumber,
+                'full_name'            => $fullName,
+                'email'                => $email,
+                'phone'                => $phone,
+                'password'             => $defaultPass,
+                'role'                 => 'student',
+                'created_by'           => $createdBy,
+                'must_change_password' => 1,
             ]);
 
             if ($res['success']) {
-                $result['saved']++;
+                $result['created']++;
+                $result['accounts'][] = [
+                    'name'       => $fullName,
+                    'reg_number' => $regNumber,
+                    'email'      => $email,
+                    'phone'      => $phone,
+                    'temp_pass'  => $defaultPass,
+                ];
             } else {
                 $result['skipped']++;
                 $result['errors'][] = [
                     'row'    => $rowNum,
-                    'reg'    => $row['reg_number'] ?? '(empty)',
+                    'name'   => $fullName ?: $regNumber,
                     'reason' => $res['message'],
                 ];
             }

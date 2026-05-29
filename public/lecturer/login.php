@@ -126,67 +126,102 @@ $schoolName = DB::row(
            style="margin-bottom:var(--space-5)">
       </div>
 
-      <!-- Login form -->
-      <form id="login-form" method="POST" novalidate>
+      <!-- Step 1: credentials -->
+      <div id="step-credentials">
+        <form id="login-form" method="POST" novalidate>
 
-        <div class="form-group">
-          <label class="form-label" for="reg_number">
-            Staff Number or Email
-            <span class="required">*</span>
-          </label>
-          <input type="text"
-                 id="reg_number"
-                 name="reg_number"
-                 class="form-control"
-                 value="<?= htmlspecialchars($regNumber) ?>"
-                 placeholder="e.g. LEC001 or email@school.local"
-                 autocomplete="username"
-                 autocapitalize="none"
-                 required
-                 autofocus>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="password">
-            Password <span class="required">*</span>
-          </label>
-          <div class="password-field">
-            <input type="password"
-                   id="password"
-                   name="password"
+          <div class="form-group">
+            <label class="form-label" for="reg_number">
+              Staff Number or Email
+              <span class="required">*</span>
+            </label>
+            <input type="text"
+                   id="reg_number"
+                   name="reg_number"
                    class="form-control"
-                   placeholder="Enter your password"
-                   autocomplete="current-password"
-                   required>
-            <button type="button"
-                    class="password-toggle"
-                    onclick="togglePassword()"
-                    aria-label="Toggle password visibility">
-              <span id="eye-icon">👁</span>
-            </button>
+                   value="<?= htmlspecialchars($regNumber) ?>"
+                   placeholder="e.g. LEC001 or email@school.local"
+                   autocomplete="username"
+                   autocapitalize="none"
+                   required
+                   autofocus>
           </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">
+              Password <span class="required">*</span>
+            </label>
+            <div class="password-field">
+              <input type="password"
+                     id="password"
+                     name="password"
+                     class="form-control"
+                     placeholder="Enter your password"
+                     autocomplete="current-password"
+                     required>
+              <button type="button"
+                      class="password-toggle"
+                      onclick="togglePassword()"
+                      aria-label="Toggle password visibility">
+                <span id="eye-icon">👁</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="attempts-warning" class="text-xs text-warning"
+               style="display:none;margin-bottom:var(--space-3)"></div>
+          <div id="lockout-notice" class="alert alert-error"
+               style="display:none;margin-bottom:var(--space-4)">
+            <span class="alert-icon">🔒</span>
+            <span id="lockout-message"></span>
+          </div>
+
+          <button type="submit"
+                  id="login-btn"
+                  class="btn btn-primary btn-full btn-lg"
+                  style="margin-top:var(--space-2)">
+            Sign In
+          </button>
+
+          <div style="margin-top:var(--space-4);text-align:center">
+            <a href="<?= BASE_URL ?>/auth/forgot-password?role=lecturer"
+               class="text-sm text-muted" style="text-decoration:none">
+              Forgot your password?
+            </a>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Step 2: OTP -->
+      <div id="step-otp" style="display:none">
+        <div class="alert alert-info" style="margin-bottom:var(--space-5)">
+          <span class="alert-icon">✉️</span>
+          <span id="otp-hint-msg">A 6-digit code has been sent to your email.</span>
         </div>
-
-        <!-- Attempts remaining indicator (shown after first failure) -->
-        <div id="attempts-warning" class="text-xs text-warning"
-             style="display:none;margin-bottom:var(--space-3)">
+        <div data-error-container="otp" class="alert alert-error"
+             style="margin-bottom:var(--space-4)"></div>
+        <form id="otp-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="otp-input">
+              Verification Code <span class="required">*</span>
+            </label>
+            <input type="text" id="otp-input" class="form-control"
+                   placeholder="Enter 6-digit code" maxlength="6"
+                   inputmode="numeric" autocomplete="one-time-code"
+                   style="font-size:1.4rem;letter-spacing:6px;text-align:center">
+          </div>
+          <button type="submit" id="otp-btn"
+                  class="btn btn-primary btn-full btn-lg"
+                  style="margin-top:var(--space-2)">Verify Code</button>
+        </form>
+        <div style="margin-top:var(--space-4);text-align:center">
+          <a href="#" onclick="showCredentials()"
+             class="text-sm text-muted" style="text-decoration:none">
+            ← Back / Resend code
+          </a>
         </div>
-
-        <!-- Lockout countdown (shown during lockout) -->
-        <div id="lockout-notice" class="alert alert-error"
-             style="display:none;margin-bottom:var(--space-4)">
-          <span class="alert-icon">🔒</span>
-          <span id="lockout-message"></span>
-        </div>
-
-        <button type="submit"
-                id="login-btn"
-                class="btn btn-primary btn-full btn-lg"
-                style="margin-top:var(--space-2)">
-          Sign In
-        </button>
-
-      </form>
+      </div>
 
       <!-- Portal switcher -->
       <div class="portal-switcher">
@@ -216,105 +251,102 @@ $schoolName = DB::row(
 <script>
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
 
-const form         = document.getElementById('login-form');
-const loginBtn     = document.getElementById('login-btn');
+const PORTAL_ROLE    = 'lecturer';
 const errorContainer = document.querySelector('[data-error-container]');
-const attemptsWarn = document.getElementById('attempts-warning');
-const lockoutDiv   = document.getElementById('lockout-notice');
-const lockoutMsg   = document.getElementById('lockout-message');
+const attemptsWarn   = document.getElementById('attempts-warning');
+const lockoutDiv     = document.getElementById('lockout-notice');
+const lockoutMsg     = document.getElementById('lockout-message');
 
-// ── Form submit via fetch ─────────────────────────────────────────────────
-form.addEventListener('submit', async (e) => {
+function showError(msg) { errorContainer.textContent = msg; errorContainer.hidden = false; }
+function showCredentials() {
+  document.getElementById('step-otp').style.display         = 'none';
+  document.getElementById('step-credentials').style.display = 'block';
+  document.getElementById('otp-input').value = '';
+  clearOtpErr();
+}
+function clearOtpErr() {
+  const el = document.querySelector('[data-error-container="otp"]');
+  el.textContent = ''; el.hidden = true;
+}
+function setOtpErr(msg) {
+  const el = document.querySelector('[data-error-container="otp"]');
+  el.textContent = msg; el.hidden = false;
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-
-  // Clear previous messages
-  errorContainer.textContent = '';
-  errorContainer.hidden      = true;
-  attemptsWarn.style.display = 'none';
-  lockoutDiv.style.display   = 'none';
+  errorContainer.textContent = ''; errorContainer.hidden = true;
+  attemptsWarn.style.display = 'none'; lockoutDiv.style.display = 'none';
 
   const regNumber = document.getElementById('reg_number').value.trim();
   const password  = document.getElementById('password').value;
+  const loginBtn  = document.getElementById('login-btn');
 
-  if (!regNumber || !password) {
-    showError('Please enter your registration number and password.');
-    return;
-  }
+  if (!regNumber || !password) { showError('Please enter your registration number and password.'); return; }
 
   await Api.withLoading(loginBtn, async () => {
     try {
-      const data = await Api.post(`${BASE_URL}/api/auth/login.php`, {
-        reg_number: regNumber,
-        password:   password,
-      });
+      const data = await Api.post(`${BASE_URL}/api/auth/login.php`, { reg_number: regNumber, password });
 
-      if (data.success) {
-        // Verify this login is for a lecturer account
-        if (data.user.role !== 'lecturer' && data.user.role !== 'admin') {
-          showError(
-            `This is the Lecturer Portal. Your account role is "${data.user.role}". ` +
-            `Please use the correct portal link below.`
-          );
-          // Log out immediately — wrong portal
-          await fetch(`${BASE_URL}/api/auth/logout.php`);
-          return;
-        }
-
-        loginBtn.innerHTML = '✓ Signed in! Redirecting...';
-        loginBtn.style.background = 'var(--color-success)';
-
-        setTimeout(() => {
-          window.location.href = data.redirect;
-        }, 600);
-      }
-
-    } catch (err) {
-      const body = err.body || {};
-
-      if (err.status === 429) {
-        // Locked out
-        lockoutMsg.textContent = err.message;
-        lockoutDiv.style.display = 'flex';
-        loginBtn.disabled = true;
+      if (data.step === 'otp') {
+        document.getElementById('otp-hint-msg').textContent = data.message;
+        document.getElementById('step-credentials').style.display = 'none';
+        document.getElementById('step-otp').style.display         = 'block';
+        setTimeout(() => document.getElementById('otp-input').focus(), 100);
         return;
       }
 
-      if (body.attempts_remaining !== undefined) {
-        attemptsWarn.textContent =
-          `${body.attempts_remaining} attempt(s) remaining before your IP is locked out.`;
-        attemptsWarn.style.display = 'block';
+      if (data.user.role !== PORTAL_ROLE && data.user.role !== 'admin') {
+        showError(`This is the Lecturer Portal. Your role is "${data.user.role}". Use the correct portal.`);
+        await fetch(`${BASE_URL}/api/auth/logout.php`); return;
       }
+      loginBtn.innerHTML = '✓ Signed in! Redirecting...';
+      loginBtn.style.background = 'var(--color-success)';
+      setTimeout(() => { window.location.href = data.redirect; }, 600);
 
-      showError(err.message || 'Login failed. Please try again.');
-
-      // Shake the form on failure
-      form.classList.add('shake');
-      setTimeout(() => form.classList.remove('shake'), 500);
+    } catch (err) {
+      const body = err.body || {};
+      if (err.status === 429) { lockoutMsg.textContent = err.message; lockoutDiv.style.display = 'flex'; loginBtn.disabled = true; return; }
+      if (body.attempts_remaining !== undefined) { attemptsWarn.textContent = `${body.attempts_remaining} attempt(s) remaining.`; attemptsWarn.style.display = 'block'; }
+      showError(err.message || 'Login failed.');
+      document.getElementById('login-form').classList.add('shake');
+      setTimeout(() => document.getElementById('login-form').classList.remove('shake'), 500);
     }
   });
 });
 
-function showError(msg) {
-  errorContainer.textContent = msg;
-  errorContainer.hidden      = false;
-}
+document.getElementById('otp-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearOtpErr();
+  const otp = document.getElementById('otp-input').value.trim();
+  const btn = document.getElementById('otp-btn');
+  if (!otp || otp.length !== 6) { setOtpErr('Please enter the 6-digit code.'); return; }
 
-// ── Password visibility toggle ────────────────────────────────────────────
+  await Api.withLoading(btn, async () => {
+    try {
+      const data = await Api.post(`${BASE_URL}/api/auth/verify_otp.php`, { otp });
+      if (data.user.role !== PORTAL_ROLE && data.user.role !== 'admin') {
+        setOtpErr(`This is the Lecturer Portal. Use the correct portal.`);
+        await fetch(`${BASE_URL}/api/auth/logout.php`); return;
+      }
+      btn.innerHTML = '✓ Verified — redirecting...'; btn.style.background = 'var(--color-success)';
+      setTimeout(() => { window.location.href = data.redirect; }, 600);
+    } catch (err) {
+      if (err.body?.expired) { showCredentials(); }
+      setOtpErr(err.message || 'Verification failed.');
+    }
+  });
+});
+
 function togglePassword() {
-  const input   = document.getElementById('password');
-  const icon    = document.getElementById('eye-icon');
-  const isHidden = input.type === 'password';
-
-  input.type  = isHidden ? 'text' : 'password';
-  icon.textContent = isHidden ? '🙈' : '👁';
+  const input = document.getElementById('password');
+  const icon  = document.getElementById('eye-icon');
+  input.type  = input.type === 'password' ? 'text' : 'password';
+  icon.textContent = input.type === 'password' ? '👁' : '🙈';
 }
 
-// ── Enter key on reg_number field moves focus to password ─────────────────
 document.getElementById('reg_number').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    document.getElementById('password').focus();
-  }
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('password').focus(); }
 });
 </script>
 

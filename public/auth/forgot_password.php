@@ -202,14 +202,16 @@ document.getElementById('forgot-form').addEventListener('submit', async (e) => {
 
       document.getElementById('form-area').style.display = 'none';
 
-      if (data.method === 'email') {
-        document.getElementById('email-success').style.display = 'block';
-      } else {
-        // admin_queue
+      if (data.method === 'admin_queue') {
+        // User found but can't receive email — show admin queue state
         const msgEl = document.getElementById('admin-queue-msg');
         msgEl.innerHTML = '<strong>Administrator approval required.</strong><br>' +
           (data.message || 'Your request has been queued.');
         document.getElementById('admin-queue').style.display = 'block';
+      } else {
+        // method === 'email', OR user not found (generic — always show email-success
+        // so we don't reveal whether the account exists)
+        document.getElementById('email-success').style.display = 'block';
       }
     } catch (err) {
       errEl.textContent = err.message || 'Something went wrong. Please try again.';

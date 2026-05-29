@@ -62,7 +62,8 @@ if (!$pending) {
 // ── Check expiry ──────────────────────────────────────────────────────────────
 if (time() > $pending['expires']) {
     unset($_SESSION['otp_pending']);
-    http_response_code(401);
+    // 410 Gone — code expired, not session expiry
+    http_response_code(410);
     echo json_encode([
         'success' => false,
         'expired' => true,
@@ -74,7 +75,8 @@ if (time() > $pending['expires']) {
 // ── Check attempts (max 5 wrong guesses before lockout) ───────────────────────
 if ($pending['attempts'] >= 5) {
     unset($_SESSION['otp_pending']);
-    http_response_code(401);
+    // 429 Too Many Requests
+    http_response_code(429);
     echo json_encode([
         'success' => false,
         'expired' => true,
@@ -88,7 +90,8 @@ if (!password_verify($otp, $pending['otp_hash'])) {
     $_SESSION['otp_pending']['attempts']++;
     $remaining = 5 - $_SESSION['otp_pending']['attempts'];
 
-    http_response_code(401);
+    // 422 Unprocessable — wrong code, not session expiry
+    http_response_code(422);
     echo json_encode([
         'success'            => false,
         'message'            => 'Incorrect code. ' . ($remaining > 0 ? "{$remaining} attempt(s) remaining." : 'No attempts left.'),

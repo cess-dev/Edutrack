@@ -36,6 +36,32 @@ class EmailService
     }
 
     /**
+     * Returns true when the email address is likely routable on the public internet.
+     *
+     * Rejects addresses whose domain ends with a reserved/internal TLD
+     * (.local, .localhost, .internal, .test, .invalid, .example, .localdomain)
+     * that can never receive external mail.  These are common on XAMPP demo
+     * installs where placeholder addresses like user@school.local are used.
+     *
+     * @param  string $email
+     * @return bool
+     */
+    public static function isDeliverableAddress(string $email): bool
+    {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $domain = strtolower(substr($email, strrpos($email, '@') + 1));
+        $tld    = substr($domain, strrpos($domain, '.') + 1);
+
+        $internalTlds = ['local', 'localhost', 'internal', 'test',
+                         'invalid', 'example', 'localdomain', 'lan'];
+
+        return !in_array($tld, $internalTlds, true);
+    }
+
+    /**
      * Send an HTML email (with auto-generated plain-text fallback).
      *
      * @param  string $to      Recipient address
@@ -78,8 +104,11 @@ class EmailService
                 $mail->SMTPAutoTLS = false;
             }
 
-            // Log SMTP conversation to PHP error log (helps diagnose auth failures)
-            $mail->SMTPDebug  = SMTP::DEBUG_SERVER;
+            // Log SMTP errors to PHP error log; full conversation only in development
+            $debugLevel = (defined('APP_ENV') && APP_ENV === 'development')
+                ? SMTP::DEBUG_SERVER
+                : SMTP::DEBUG_OFF;
+            $mail->SMTPDebug  = $debugLevel;
             $mail->Debugoutput = static function (string $str, int $level): void {
                 error_log('[EduTrack SMTP] ' . trim($str));
             };

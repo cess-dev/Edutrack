@@ -19,6 +19,14 @@ $pendingDisputes = (int)(DB::row(
 $activeSessions = (int)(DB::row(
     "SELECT COUNT(*) AS cnt FROM attendance_sessions WHERE is_active = 1"
 )['cnt'] ?? 0);
+
+try {
+    $pendingPasswordResets = (int)(DB::row(
+        "SELECT COUNT(*) AS cnt FROM password_reset_requests WHERE status = 'pending'"
+    )['cnt'] ?? 0);
+} catch (PDOException $e) {
+    $pendingPasswordResets = 0;
+}
 ?>
 <aside class="sidebar">
   <div class="sidebar-brand">
@@ -57,6 +65,9 @@ $activeSessions = (int)(DB::row(
        class="nav-item <?= adminNavActive('users', $currentPage) ?>">
       <span class="nav-icon">👥</span>
       <span>All Users</span>
+      <?php if ($pendingPasswordResets > 0): ?>
+        <span class="nav-badge"><?= $pendingPasswordResets ?></span>
+      <?php endif; ?>
     </a>
 
     <a href="<?= BASE_URL ?>/admin/enrollments"

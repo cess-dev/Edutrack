@@ -106,15 +106,17 @@ if (!$user || !$user['is_active'] || !$passOk) {
     $_SESSION[$attemptKey] = ($_SESSION[$attemptKey] ?? 0) + 1;
 
     if ($_SESSION[$attemptKey] >= 5) {
-        $_SESSION[$lockoutKey] = time() + 900; // 15 minutes
+        $_SESSION[$lockoutKey] = time() + 300; // 5 minutes
         $_SESSION[$attemptKey] = 0;
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Too many failed attempts. Locked out for 15 minutes.']);
+        // 429 — not 401 — so ajax.js does NOT treat this as session expiry
+        http_response_code(429);
+        echo json_encode(['success' => false, 'message' => 'Too many failed attempts. Please wait 5 minutes before trying again.']);
         exit;
     }
 
     $remaining = 5 - $_SESSION[$attemptKey];
-    http_response_code(401);
+    // 422 — not 401 — so ajax.js does NOT misread this as session expiry
+    http_response_code(422);
     echo json_encode([
         'success'            => false,
         'message'            => 'Invalid registration number or password.',
@@ -127,10 +129,11 @@ if (!$user || !$user['is_active'] || !$passOk) {
 unset($_SESSION[$attemptKey], $_SESSION[$lockoutKey]);
 
 // ── Route: OTP or direct login ────────────────────────────────────────────────
-$smtpOn   = EmailService::isEnabled();
-$hasEmail = !empty($user['email']);
+$smtpOn       = EmailService::isEnabled();
+$hasEmail     = !empty($user['email']);
+$deliverable  = $hasEmail && EmailService::isDeliverableAddress($user['email']);
 
-if ($smtpOn && $hasEmail) {
+if ($smtpOn && $deliverable) {
     // Generate 6-digit OTP
     $otp     = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $expires = time() + 600; // 10 minutes

@@ -293,44 +293,117 @@ const QRScanner = (() => {
 
   // ── Private: camera error handler ─────────────────────────────────────────
   function _handleCameraError(err) {
-    let message = '';
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
+    const isSecure    = location.protocol === 'https:';
 
     switch (err.name) {
       case 'NotAllowedError':
       case 'PermissionDeniedError':
-        message =
-          'Camera permission denied. ' +
-          'Please allow camera access in your browser settings and refresh the page.';
+        if (!isLocalhost && !isSecure) {
+          // LAN/IP access over HTTP — browser silently blocks camera
+          _showPermissionGuide('https');
+        } else {
+          // localhost or HTTPS but user clicked Block
+          _showPermissionGuide('blocked');
+        }
         break;
 
       case 'NotFoundError':
       case 'DevicesNotFoundError':
-        message = 'No camera found on this device.';
+        _setStatus('error', 'No camera found on this device. Use the manual token entry below.');
         break;
 
       case 'NotReadableError':
       case 'TrackStartError':
-        message = 'Camera is in use by another application. Please close it and try again.';
+        _setStatus('error', 'Camera is already in use by another app. Close it and try again.');
         break;
 
       case 'OverconstrainedError':
-        // Retry without the ideal constraints
         _retryWithBasicConstraints();
         return;
 
       case 'NotSupportedError':
-        message =
-          'Camera access requires HTTPS. ' +
-          'Please access the student portal via https:// or ask your administrator to ' +
-          'enable HTTPS on the school server.';
+        _showPermissionGuide('https');
         break;
 
       default:
-        message = `Camera error: ${err.message || err.name}. Please refresh and try again.`;
+        _setStatus('error', `Camera error (${err.name}): ${err.message || 'unknown'}. Try refreshing.`);
     }
 
-    _setStatus('error', message);
     _updateButtons(false);
+  }
+
+  /**
+   * Render an in-page step-by-step fix guide instead of a bare error message.
+   * @param {'blocked'|'https'} reason
+   */
+  function _showPermissionGuide(reason) {
+    if (!statusEl) return;
+
+    let html = '';
+
+    if (reason === 'https') {
+      html = `
+        <div style="text-align:left;font-size:13px;line-height:1.6">
+          <strong style="color:var(--color-error)">❌ Camera blocked — HTTPS required</strong>
+          <p style="margin:8px 0 4px">
+            Browsers only allow camera access on <strong>secure (HTTPS) pages</strong>.
+            You are currently on HTTP over a network address.
+          </p>
+          <p style="margin:0 0 8px;font-weight:600">Options:</p>
+          <ol style="margin:0;padding-left:20px">
+            <li>Ask your IT admin to enable HTTPS on the school server.</li>
+            <li>Access via <strong>localhost</strong> on the same computer
+                (camera works on HTTP for localhost only).</li>
+            <li>Use the <strong>manual token entry</strong> below as a workaround
+                while HTTPS is being set up.</li>
+          </ol>
+        </div>`;
+    } else {
+      const isChrome  = /chrome/i.test(navigator.userAgent) && !/edg/i.test(navigator.userAgent);
+      const isFirefox = /firefox/i.test(navigator.userAgent);
+      const isSafari  = /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+      const isMobile  = /android|iphone|ipad/i.test(navigator.userAgent);
+
+      let steps = '';
+      if (isMobile && isChrome) {
+        steps = `
+          <li>Tap the <strong>lock / info icon</strong> in the address bar.</li>
+          <li>Tap <strong>Permissions → Camera → Allow</strong>.</li>
+          <li>Refresh this page.</li>`;
+      } else if (isMobile && isSafari) {
+        steps = `
+          <li>Open <strong>Settings → Safari → Camera</strong>.</li>
+          <li>Set to <strong>Allow</strong>.</li>
+          <li>Return here and refresh.</li>`;
+      } else if (isFirefox) {
+        steps = `
+          <li>Click the <strong>camera icon</strong> in the address bar.</li>
+          <li>Click <strong>Blocked Temporarily</strong> → choose <strong>Allow</strong>.</li>
+          <li>Refresh this page.</li>`;
+      } else {
+        steps = `
+          <li>Click the <strong>lock / info icon</strong> in the address bar.</li>
+          <li>Find <strong>Camera</strong> and set it to <strong>Allow</strong>.</li>
+          <li>Refresh this page.</li>`;
+      }
+
+      html = `
+        <div style="text-align:left;font-size:13px;line-height:1.6">
+          <strong style="color:var(--color-error)">❌ Camera permission denied</strong>
+          <p style="margin:8px 0 4px">To fix this:</p>
+          <ol style="margin:0;padding-left:20px">${steps}</ol>
+          <button onclick="location.reload()"
+                  style="margin-top:10px;padding:6px 16px;background:var(--color-accent);
+                         color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">
+            🔄 Refresh Now
+          </button>
+        </div>`;
+    }
+
+    statusEl.innerHTML = html;
+    statusEl.style.color = 'inherit';
+    statusEl.setAttribute('data-state', 'error');
   }
 
   /**

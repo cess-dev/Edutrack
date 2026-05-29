@@ -192,7 +192,10 @@ $schoolName = DB::row(
           </button>
         </form>
 
-        <div style="margin-top:var(--space-4);text-align:center">
+        <p class="text-xs text-muted" style="margin-top:var(--space-3);text-align:center">
+          Didn't receive it? Check your <strong>spam/junk</strong> folder.
+        </p>
+        <div style="margin-top:var(--space-3);text-align:center">
           <a href="#" onclick="showCredentials()" class="text-sm text-muted"
              style="text-decoration:none">
             ← Back / Resend code

@@ -146,10 +146,14 @@ $enrolledUnits = DB::rows(
                style="display:none;margin-top:var(--space-4)">
             <span class="alert-icon">🔒</span>
             <div>
-              <strong>Camera may not be available.</strong>
-              Browser camera access requires a secure connection (HTTPS).
-              If scanning fails, ask your administrator to enable HTTPS or
-              use the manual token entry below.
+              <strong>Camera requires HTTPS on this network.</strong>
+              You are accessing the app over an unencrypted (HTTP) connection from a
+              network address. Browsers only allow camera access on HTTPS pages or
+              on <code>localhost</code>.
+              <ul style="margin:var(--space-2) 0 0;padding-left:var(--space-5)">
+                <li>Ask your IT admin to enable HTTPS on the school server.</li>
+                <li>Or use the <strong>manual token entry</strong> below as a temporary workaround.</li>
+              </ul>
             </div>
           </div>
 
@@ -235,9 +239,25 @@ $enrolledUnits = DB::rows(
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
 
 // ── Show HTTPS warning if not in a secure context ─────────────────────────────
-if (location.protocol !== 'https:' && location.hostname !== 'localhost' &&
-    location.hostname !== '127.0.0.1') {
+const _isSecureCtx = location.protocol === 'https:'
+                  || location.hostname === 'localhost'
+                  || location.hostname === '127.0.0.1';
+
+if (!_isSecureCtx) {
   document.getElementById('https-warning').style.display = 'flex';
+}
+
+// Also disable the Start Scanner button and show reason immediately if camera
+// cannot possibly work (mediaDevices unavailable = insecure context on LAN)
+if (!_isSecureCtx && (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
+  const btn = document.getElementById('start-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.title    = 'Camera requires HTTPS on network addresses';
+  }
+  document.getElementById('scanner-status').innerHTML =
+    '<span style="color:var(--color-warning)">⚠️ Camera unavailable over HTTP on this network.' +
+    ' Use the manual token entry below.</span>';
 }
 
 // ── Initialise QR scanner ─────────────────────────────────────────────────────

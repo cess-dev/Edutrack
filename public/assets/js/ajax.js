@@ -114,7 +114,8 @@ const Api = (() => {
       if (meta) meta.setAttribute('content', csrfToken);
     }
 
-    // Session expired — redirect to login
+    // Session expired — only 401 from an AUTHENTICATED endpoint means true session expiry.
+    // 422 = wrong credentials/OTP, 429 = rate-limited — these are NOT session expiry.
     if (response.status === 401) {
       _handleSessionExpiry();
       throw new ApiError(401, 'Session expired. Redirecting to login...', null);

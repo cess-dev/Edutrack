@@ -129,6 +129,19 @@ $enrolledUnits = DB::rows(
               Press "Start Scanner" to activate your camera.
             </div>
 
+            <?php if (GEOFENCE_ENABLED): ?>
+            <!-- Location status bar — only shown when geofencing is active -->
+            <div id="location-status-bar"
+                 style="margin-top:var(--space-3);padding:var(--space-2) var(--space-3);
+                        background:var(--color-bg-subtle);border-radius:var(--radius-md);
+                        font-size:var(--text-xs)">
+              <span id="location-status-text"
+                    style="color:var(--color-text-muted)">
+                📍 Location will be requested when you start the scanner.
+              </span>
+            </div>
+            <?php endif; ?>
+
             <!-- Action buttons -->
             <div class="scan-btn-group">
               <button id="start-btn" class="btn btn-primary">
@@ -191,6 +204,18 @@ $enrolledUnits = DB::rows(
               </div>
             </div>
           </details>
+
+          <?php if (GEOFENCE_ENABLED): ?>
+          <div class="alert alert-info" style="margin-top:var(--space-5)">
+            <span class="alert-icon">📍</span>
+            <div>
+              <strong>Location verification is active.</strong>
+              Your device must be within <strong><?= SCHOOL_RADIUS_METERS ?> m</strong>
+              of the school to record attendance. Both camera <em>and</em> location
+              access are required — tap <em>Allow</em> on both prompts.
+            </div>
+          </div>
+          <?php endif; ?>
 
           <!-- ── Enrolled units reference ────────────────────────────────── -->
           <div class="card" style="margin-top:var(--space-6);text-align:left">
@@ -262,7 +287,8 @@ if (!_isSecureCtx && (!navigator.mediaDevices || !navigator.mediaDevices.getUser
 
 // ── Initialise QR scanner ─────────────────────────────────────────────────────
 QRScanner.init({
-  scanEndpoint: `${BASE_URL}/api/attendance/scan.php`,
+  scanEndpoint:    `${BASE_URL}/api/attendance/scan.php`,
+  requireLocation: <?= GEOFENCE_ENABLED ? 'true' : 'false' ?>,
 
   onSuccess: (data) => {
     // Hide scanner card, show success result

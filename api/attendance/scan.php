@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Scan submissions are always JSON from the fetch() in qr-scanner.js
-$body  = json_decode(file_get_contents('php://input'), true) ?? [];
+$body   = json_decode(file_get_contents('php://input'), true) ?? [];
 $qrData = trim($body['qr_data'] ?? '');
 
 if (empty($qrData)) {
@@ -59,6 +59,57 @@ if (empty($qrData)) {
 }
 
 $studentId = Auth::id();
+
+// ── Geofence validation ───────────────────────────────────────────────────────
+if (GEOFENCE_ENABLED) {
+    $lat = isset($body['lat']) && is_numeric($body['lat']) ? (float) $body['lat'] : null;
+    $lng = isset($body['lng']) && is_numeric($body['lng']) ? (float) $body['lng'] : null;
+
+    if ($lat === null || $lng === null) {
+        http_response_code(403);
+        echo json_encode([
+            'success'    => false,
+            'error_code' => 'LOCATION_REQUIRED',
+            'message'    => 'Location access is required for attendance scanning. '
+                          . 'Please tap "Allow" when your browser asks for location permission, '
+                          . 'then try again.',
+        ]);
+        exit;
+    }
+
+    $distance = _geofenceDistance(SCHOOL_LAT, SCHOOL_LNG, $lat, $lng);
+
+    if ($distance > SCHOOL_RADIUS_METERS) {
+        $distanceM = (int) round($distance);
+        http_response_code(403);
+        echo json_encode([
+            'success'    => false,
+            'error_code' => 'OUTSIDE_GEOFENCE',
+            'message'    => "You must be on campus to scan attendance. "
+                          . "Your device is approximately {$distanceM} m from the school "
+                          . "(allowed radius: " . SCHOOL_RADIUS_METERS . " m). "
+                          . "If you are on campus, try moving outside or restarting your GPS.",
+            'distance_m' => $distanceM,
+            'radius_m'   => SCHOOL_RADIUS_METERS,
+        ]);
+        exit;
+    }
+}
+
+/**
+ * Haversine great-circle distance between two GPS coordinates.
+ * Returns distance in metres.
+ */
+function _geofenceDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+{
+    $R  = 6_371_000; // Earth mean radius in metres
+    $φ1 = deg2rad($lat1);
+    $φ2 = deg2rad($lat2);
+    $Δφ = deg2rad($lat2 - $lat1);
+    $Δλ = deg2rad($lon2 - $lon1);
+    $a  = sin($Δφ / 2) ** 2 + cos($φ1) * cos($φ2) * sin($Δλ / 2) ** 2;
+    return $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
+}
 
 // ── Validate scan via QRHelper ────────────────────────────────────────────────
 $validation = QRHelper::validateScan($qrData, $studentId);
@@ -113,10 +164,12 @@ $unitLabel = $unit ? "{$unit['code']} — {$unit['name']}" : 'Unknown Unit';
 $scannedAt = date('Y-m-d H:i:s');
 
 // ── Audit log ─────────────────────────────────────────────────────────────────
-Auth::audit('attendance_scanned', 'attendance_logs', $sessionId, [
-    'unit_id'   => $unitId,
-    'student_id'=> $studentId,
-]);
+Auth::audit('attendance_scanned', 'attendance_logs', $sessionId, array_filter([
+    'unit_id'    => $unitId,
+    'student_id' => $studentId,
+    'lat'        => $lat ?? null,
+    'lng'        => $lng ?? null,
+]));
 
 // ── Success response ──────────────────────────────────────────────────────────
 echo json_encode([

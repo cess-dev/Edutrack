@@ -30,11 +30,13 @@ const QRScanner = (() => {
     videoId:         'qr-video',
     canvasId:        'qr-canvas',
     statusId:        'scanner-status',
+    locationStatusId:'location-status-text', // element where location status is shown
     startBtnId:      'start-btn',
     stopBtnId:       'stop-btn',
     overlayId:       'qr-overlay',
     scanIntervalMs:  200,      // How often to sample a video frame (ms)
     cooldownMs:      3000,     // Pause after a scan attempt before re-scanning
+    requireLocation: false,    // Set true when server has GEOFENCE_ENABLED=true
     onSuccess:       null,     // Callback(data) on successful attendance record
     onError:         null,     // Callback(data) on validation/server failure
   };
@@ -46,6 +48,11 @@ const QRScanner = (() => {
   let scanning     = false;   // True while the decode loop is running
   let inCooldown   = false;   // True during the post-scan pause
   let lastCode     = null;    // Last decoded QR string (prevents re-posting same code)
+
+  // ── Location state ─────────────────────────────────────────────────────────
+  let geoWatchId   = null;    // navigator.geolocation.watchPosition handle
+  let currentPos   = null;    // { lat, lng, accuracy } — null until acquired
+  let locState     = 'idle';  // 'idle'|'pending'|'acquired'|'denied'|'unavailable'
 
   // ── DOM references ─────────────────────────────────────────────────────────
   let video    = null;
@@ -62,6 +69,8 @@ const QRScanner = (() => {
    * Does NOT start the camera — user must click the start button.
    *
    * @param {object} options  Merged with DEFAULTS
+   *   requireLocation {bool} — if true, location is fetched on start and
+   *                            included in every scan request.
    */
   function init(options = {}) {
     config = { ...DEFAULTS, ...options };
@@ -102,7 +111,7 @@ const QRScanner = (() => {
 
   // ── Public: start ──────────────────────────────────────────────────────────
   /**
-   * Request camera permission and begin the decode loop.
+   * Request camera (and optionally location) permission, then begin decode loop.
    * Uses rear camera on mobile (facingMode: environment).
    */
   async function start() {
@@ -110,6 +119,11 @@ const QRScanner = (() => {
 
     _setStatus('loading', 'Requesting camera access...');
     _updateButtons(false);
+
+    // Kick off location in parallel with the camera request
+    if (config.requireLocation) {
+      _startLocationWatch();
+    }
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -142,7 +156,7 @@ const QRScanner = (() => {
 
   // ── Public: stop ───────────────────────────────────────────────────────────
   /**
-   * Stop the camera stream and decode loop.
+   * Stop the camera stream, decode loop, and location watch.
    */
   function stop() {
     scanning = false;
@@ -159,6 +173,12 @@ const QRScanner = (() => {
 
     if (video) {
       video.srcObject = null;
+    }
+
+    // Stop GPS watch
+    if (geoWatchId !== null) {
+      navigator.geolocation.clearWatch(geoWatchId);
+      geoWatchId = null;
     }
 
     lastCode   = null;
@@ -230,12 +250,20 @@ const QRScanner = (() => {
    * @param {string} qrData
    */
   async function _submitScan(qrData) {
+    // Build request body — include GPS coordinates if available
+    const body = { qr_data: qrData };
+    if (currentPos) {
+      body.lat               = currentPos.lat;
+      body.lng               = currentPos.lng;
+      body.location_accuracy = currentPos.accuracy;
+    }
+
     try {
       const response = await fetch(config.scanEndpoint, {
         method:      'POST',
         headers:     { 'Content-Type': 'application/json' },
         credentials: 'same-origin',  // Include session cookie
-        body:        JSON.stringify({ qr_data: qrData }),
+        body:        JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -253,7 +281,8 @@ const QRScanner = (() => {
 
       } else {
         // Determine whether to stop or continue scanning based on error type
-        const fatalCodes = ['NOT_ENROLLED', 'HMAC_INVALID'];
+        const fatalCodes = ['NOT_ENROLLED', 'HMAC_INVALID',
+                            'OUTSIDE_GEOFENCE', 'LOCATION_REQUIRED'];
         const isFatal    = fatalCodes.includes(data.error_code);
 
         _setStatus('error', data.message);
@@ -289,6 +318,77 @@ const QRScanner = (() => {
         }
       }, config.cooldownMs);
     }
+  }
+
+  // ── Private: location helpers ──────────────────────────────────────────────
+
+  /**
+   * Start watching the device's GPS position.
+   * Updates `currentPos` continuously while the scanner is active.
+   * Falls back gracefully when geolocation is unavailable.
+   */
+  function _startLocationWatch() {
+    const locEl = document.getElementById(config.locationStatusId);
+
+    if (!navigator.geolocation) {
+      locState = 'unavailable';
+      if (locEl) locEl.textContent = '📍 GPS not supported by this browser';
+      return;
+    }
+
+    locState = 'pending';
+    if (locEl) locEl.textContent = '📍 Getting your location…';
+
+    const opts = {
+      enableHighAccuracy: true,
+      timeout:            15000,
+      maximumAge:         10000,
+    };
+
+    const onSuccess = (pos) => {
+      currentPos = {
+        lat:      pos.coords.latitude,
+        lng:      pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      };
+      locState = 'acquired';
+      const acc = Math.round(pos.coords.accuracy);
+      if (locEl) {
+        locEl.style.color = 'var(--color-success, #0F7B6C)';
+        locEl.textContent = `📍 Location confirmed (±${acc} m accuracy)`;
+      }
+    };
+
+    const onError = (err) => {
+      if (err.code === err.PERMISSION_DENIED) {
+        locState = 'denied';
+        if (locEl) {
+          locEl.style.color = 'var(--color-error, #D85A30)';
+          locEl.textContent = '📍 Location denied — tap the address bar lock icon to allow it';
+        }
+      } else {
+        locState = 'unavailable';
+        if (locEl) {
+          locEl.style.color = 'var(--color-warning, #C47B12)';
+          locEl.textContent = '📍 Could not get location — check that GPS is enabled';
+        }
+      }
+    };
+
+    // Immediate one-shot to get a quick first fix
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, opts);
+
+    // Then keep watching for more accurate updates
+    geoWatchId = navigator.geolocation.watchPosition(onSuccess, null, opts);
+  }
+
+  /**
+   * Update the location status text element.
+   * @param {string} text
+   */
+  function _setLocationText(text) {
+    const el = document.getElementById(config.locationStatusId);
+    if (el) el.textContent = text;
   }
 
   // ── Private: camera error handler ─────────────────────────────────────────

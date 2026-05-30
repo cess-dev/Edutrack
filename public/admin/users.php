@@ -52,6 +52,18 @@ $roleCounts['all'] = array_sum($roleCounts);
 // ── Lecturer options for unit assignment dropdowns ───────────────────────────
 $lecturers = UserModel::getLecturerOptions();
 
+// ── Active login OTPs (SMTP fallback) ────────────────────────────────────────
+try {
+    $activeOtps = DB::rows(
+        "SELECT id, reg_number, full_name, role, login_otp, login_otp_expires
+         FROM users
+         WHERE login_otp IS NOT NULL AND login_otp_expires > NOW()
+         ORDER BY login_otp_expires ASC"
+    );
+} catch (PDOException $e) {
+    $activeOtps = [];
+}
+
 // ── Pending password reset requests ──────────────────────────────────────────
 // Wrapped in try/catch: table may not exist if migration hasn't been run yet.
 try {
@@ -108,6 +120,69 @@ $pageTitle = 'User Management';
     </header>
 
     <div class="page-content">
+
+      <!-- ── Active Login OTPs (SMTP fallback) ───────────────────────────── -->
+      <?php if (!empty($activeOtps)): ?>
+      <div class="card animate-fade-in"
+           style="margin-bottom:var(--space-5);border-left:3px solid var(--color-accent)">
+        <div style="padding:var(--space-4) var(--space-5)">
+          <div style="display:flex;align-items:center;gap:var(--space-3);
+                      margin-bottom:var(--space-3)">
+            <span style="font-size:1.2rem">🔑</span>
+            <strong style="font-size:var(--text-sm)">
+              Active Login Codes — email delivery failed, share these manually
+            </strong>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;font-size:var(--text-sm);border-collapse:collapse">
+              <thead>
+                <tr style="color:var(--color-text-muted);text-align:left;
+                           border-bottom:1px solid var(--color-border)">
+                  <th style="padding:6px 12px 6px 0">User</th>
+                  <th style="padding:6px 12px">Reg. No.</th>
+                  <th style="padding:6px 12px">Role</th>
+                  <th style="padding:6px 12px">OTP Code</th>
+                  <th style="padding:6px 12px">Expires</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($activeOtps as $ot):
+                  $expiresTs  = strtotime($ot['login_otp_expires']);
+                  $minsLeft   = max(0, (int) ceil(($expiresTs - time()) / 60));
+                ?>
+                <tr style="border-bottom:1px solid var(--color-border-light)">
+                  <td style="padding:8px 12px 8px 0;font-weight:500">
+                    <?= htmlspecialchars($ot['full_name']) ?>
+                  </td>
+                  <td style="padding:8px 12px;font-family:monospace">
+                    <?= htmlspecialchars($ot['reg_number']) ?>
+                  </td>
+                  <td style="padding:8px 12px">
+                    <span class="badge badge-<?= $ot['role'] === 'student' ? 'success' : ($ot['role'] === 'lecturer' ? 'info' : 'warning') ?>">
+                      <?= ucfirst($ot['role']) ?>
+                    </span>
+                  </td>
+                  <td style="padding:8px 12px">
+                    <span style="font-family:monospace;font-size:1.2rem;font-weight:700;
+                                 letter-spacing:4px;color:var(--color-accent)">
+                      <?= htmlspecialchars($ot['login_otp']) ?>
+                    </span>
+                  </td>
+                  <td style="padding:8px 12px;color:var(--color-text-muted)">
+                    <?= $minsLeft ?> min<?= $minsLeft !== 1 ? 's' : '' ?> remaining
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-muted" style="margin-top:var(--space-3);margin-bottom:0">
+            Share these codes via phone or WhatsApp. They expire automatically and
+            are deleted once used. Refresh this page to update.
+          </p>
+        </div>
+      </div>
+      <?php endif; ?>
 
       <!-- ── Pending Password Reset Requests ─────────────────────────────── -->
       <?php if (!empty($pendingResets)): ?>

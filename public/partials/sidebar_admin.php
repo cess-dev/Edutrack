@@ -27,6 +27,17 @@ try {
 } catch (PDOException $e) {
     $pendingPasswordResets = 0;
 }
+
+try {
+    $activeOtpCount = (int)(DB::row(
+        "SELECT COUNT(*) AS cnt FROM users
+         WHERE login_otp IS NOT NULL AND login_otp_expires > NOW()"
+    )['cnt'] ?? 0);
+} catch (PDOException $e) {
+    $activeOtpCount = 0;
+}
+
+$usersBadge = $pendingPasswordResets + $activeOtpCount;
 ?>
 <aside class="sidebar">
   <div class="sidebar-brand">
@@ -65,8 +76,8 @@ try {
        class="nav-item <?= adminNavActive('users', $currentPage) ?>">
       <span class="nav-icon">👥</span>
       <span>All Users</span>
-      <?php if ($pendingPasswordResets > 0): ?>
-        <span class="nav-badge"><?= $pendingPasswordResets ?></span>
+      <?php if ($usersBadge > 0): ?>
+        <span class="nav-badge"><?= $usersBadge ?></span>
       <?php endif; ?>
     </a>
 

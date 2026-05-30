@@ -184,8 +184,13 @@ $schoolName = DB::row(
                   class="btn btn-navy btn-full btn-lg"
                   style="margin-top:var(--space-2)">Verify Code</button>
         </form>
-        <p class="text-xs text-muted" style="margin-top:var(--space-3);text-align:center">
+        <p id="otp-spam-note" class="text-xs text-muted"
+           style="margin-top:var(--space-3);text-align:center">
           Didn't receive it? Check your <strong>spam/junk</strong> folder.
+        </p>
+        <p id="otp-admin-note" class="text-xs text-warning"
+           style="display:none;margin-top:var(--space-3);text-align:center">
+          Email delivery failed. Check the <strong>Users page</strong> for the active code.
         </p>
         <div style="margin-top:var(--space-3);text-align:center">
           <a href="#" onclick="showCredentials()"
@@ -218,6 +223,7 @@ $schoolName = DB::row(
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
 
 const PORTAL_ROLE    = 'admin';
+let _lastIdentifier  = '';
 const errorContainer = document.querySelector('[data-error-container]');
 const attemptsWarn   = document.getElementById('attempts-warning');
 
@@ -246,7 +252,12 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
       const data = await Api.post(`${BASE_URL}/api/auth/login.php`, { reg_number: regNumber, password });
 
       if (data.step === 'otp') {
+        _lastIdentifier = regNumber;
         document.getElementById('otp-hint-msg').textContent = data.message;
+        const spamNote  = document.getElementById('otp-spam-note');
+        const adminNote = document.getElementById('otp-admin-note');
+        if (spamNote)  spamNote.style.display  = data.smtp_failed ? 'none'  : 'block';
+        if (adminNote) adminNote.style.display = data.smtp_failed ? 'block' : 'none';
         document.getElementById('step-credentials').style.display = 'none';
         document.getElementById('step-otp').style.display         = 'block';
         setTimeout(() => document.getElementById('otp-input').focus(), 100);
@@ -281,7 +292,8 @@ document.getElementById('otp-form').addEventListener('submit', async (e) => {
 
   await Api.withLoading(btn, async () => {
     try {
-      const data = await Api.post(`${BASE_URL}/api/auth/verify_otp.php`, { otp });
+      const data = await Api.post(`${BASE_URL}/api/auth/verify_otp.php`,
+        { otp, reg_number: _lastIdentifier });
       if (data.user.role !== PORTAL_ROLE) { setOtpErr(`This portal is for admins only. Use the correct portal.`); await fetch(`${BASE_URL}/api/auth/logout.php`); return; }
       btn.innerHTML = '✓ Access granted — redirecting...'; btn.style.background = 'var(--color-success)';
       setTimeout(() => { window.location.href = data.redirect; }, 600);

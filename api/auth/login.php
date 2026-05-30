@@ -135,42 +135,49 @@ $deliverable  = $hasEmail && EmailService::isDeliverableAddress($user['email']);
 
 if ($smtpOn && $deliverable) {
     // Generate 6-digit OTP
-    $otp     = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    $expires = time() + 600; // 10 minutes
+    $otp        = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $expires    = time() + 600; // 10 minutes
+    $expiresAt  = date('Y-m-d H:i:s', $expires);
 
-    // Store pending state in session (user data + OTP hash + expiry)
-    // We hash the OTP so it can't be read from session data
+    // ── Persist OTP in the users table (plaintext, short-lived) ──────────────
+    // This is the in-app fallback: if email delivery fails the admin can view
+    // the code on the Users page and relay it to the user by phone/WhatsApp.
+    DB::execute(
+        "UPDATE users SET login_otp = ?, login_otp_expires = ? WHERE id = ?",
+        [$otp, $expiresAt, $user['id']]
+    );
+
+    // ── Store hashed OTP in session as the primary verification ──────────────
     $_SESSION['otp_pending'] = [
-        'user'     => $user,               // full row (no password_hash stored after this point)
+        'user'     => $user,
         'otp_hash' => password_hash($otp, PASSWORD_BCRYPT, ['cost' => 10]),
         'expires'  => $expires,
         'attempts' => 0,
     ];
-    unset($_SESSION['otp_pending']['user']['password_hash']); // strip hash from session
+    unset($_SESSION['otp_pending']['user']['password_hash']);
 
+    // ── Try to email the code ─────────────────────────────────────────────────
     $sent = EmailService::sendOtp($user['email'], $user['full_name'], $otp);
-
-    if (!$sent) {
-        // Email failed — clear the pending state and surface the error
-        unset($_SESSION['otp_pending']);
-        http_response_code(503);
-        echo json_encode([
-            'success' => false,
-            'message' => 'Could not send verification code — email delivery failed. '
-                       . 'Please contact your administrator to reset your password.',
-        ]);
-        exit;
-    }
 
     // Mask email for display: "ed***@gmail.com"
     [$local, $domain] = explode('@', $user['email'], 2);
     $emailHint = substr($local, 0, min(3, strlen($local))) . '***@' . $domain;
 
+    if ($sent) {
+        $message = "A 6-digit code has been sent to {$emailHint}. It expires in 10 minutes.";
+    } else {
+        // Email failed — OTP is still valid in DB. Admin can view it on the Users page.
+        $message = "We could not deliver the code by email. "
+                 . "Please ask your administrator to look up your one-time code "
+                 . "(visible on the Admin → Users page).";
+    }
+
     echo json_encode([
-        'success'    => true,
-        'step'       => 'otp',
-        'email_hint' => $emailHint,
-        'message'    => "A 6-digit code has been sent to {$emailHint}. It expires in 10 minutes.",
+        'success'      => true,
+        'step'         => 'otp',
+        'email_hint'   => $sent ? $emailHint : null,
+        'smtp_failed'  => !$sent,
+        'message'      => $message,
     ]);
 
 } else {

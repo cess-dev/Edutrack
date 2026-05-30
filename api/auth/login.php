@@ -159,25 +159,29 @@ if ($smtpOn && $deliverable) {
     // ── Try to email the code ─────────────────────────────────────────────────
     $sent = EmailService::sendOtp($user['email'], $user['full_name'], $otp);
 
+    if (!$sent) {
+        // Email failed — OTP remains stored in DB so the admin can read it
+        // from the Users page and forward it via the corrected email account.
+        unset($_SESSION['otp_pending']);
+        http_response_code(503);
+        echo json_encode([
+            'success' => false,
+            'message' => 'We could not send your verification code by email. '
+                       . 'Please try again later. Your administrator can check '
+                       . 'the email configuration.',
+        ]);
+        exit;
+    }
+
     // Mask email for display: "ed***@gmail.com"
     [$local, $domain] = explode('@', $user['email'], 2);
     $emailHint = substr($local, 0, min(3, strlen($local))) . '***@' . $domain;
 
-    if ($sent) {
-        $message = "A 6-digit code has been sent to {$emailHint}. It expires in 10 minutes.";
-    } else {
-        // Email failed — OTP is still valid in DB. Admin can view it on the Users page.
-        $message = "We could not deliver the code by email. "
-                 . "Please ask your administrator to look up your one-time code "
-                 . "(visible on the Admin → Users page).";
-    }
-
     echo json_encode([
-        'success'      => true,
-        'step'         => 'otp',
-        'email_hint'   => $sent ? $emailHint : null,
-        'smtp_failed'  => !$sent,
-        'message'      => $message,
+        'success'    => true,
+        'step'       => 'otp',
+        'email_hint' => $emailHint,
+        'message'    => "A 6-digit code has been sent to {$emailHint}. It expires in 10 minutes.",
     ]);
 
 } else {

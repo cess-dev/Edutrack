@@ -223,7 +223,7 @@ $pageTitle = 'Marks Management';
                         <?= $a['is_published'] ? '✅ Published' : '⬜ Draft' ?>
                       </button>
                     </td>
-                    <td>
+                    <td style="display:flex;gap:var(--space-2);flex-wrap:wrap">
                       <?php $examPending = !empty($a['assessment_date']) && $a['assessment_date'] > date('Y-m-d'); ?>
                       <?php if ($examPending): ?>
                         <button class="btn btn-sm btn-ghost" disabled
@@ -238,6 +238,16 @@ $pageTitle = 'Marks Management';
                           Upload Marks
                         </button>
                       <?php endif; ?>
+                      <button class="btn btn-outline btn-sm"
+                              onclick="openEditModal(
+                                <?= $a['id'] ?>,
+                                '<?= htmlspecialchars($a['name'], ENT_QUOTES) ?>',
+                                '<?= $a['type'] ?>',
+                                <?= $a['max_score'] ?>,
+                                <?= $a['weight_percent'] ?>,
+                                '<?= $a['assessment_date'] ?? '' ?>')">
+                        Edit
+                      </button>
                     </td>
                   </tr>
                   <?php endforeach; ?>
@@ -510,6 +520,62 @@ $pageTitle = 'Marks Management';
 </div>
 
 
+<!-- ── Edit Assessment Modal ─────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="edit-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Assessment</h2>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div data-edit-error class="alert alert-error"
+           style="margin-bottom:var(--space-4)" hidden></div>
+      <input type="hidden" id="e-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Name <span class="required">*</span></label>
+          <input type="text" id="e-name" class="form-control"
+                 placeholder="e.g. CAT 1, Final Exam">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type <span class="required">*</span></label>
+          <select id="e-type" class="form-control">
+            <option value="cat">CAT</option>
+            <option value="assignment">Assignment</option>
+            <option value="practical">Practical</option>
+            <option value="project">Project</option>
+            <option value="final_exam">Final Exam</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Max Score <span class="required">*</span></label>
+          <input type="number" id="e-max" class="form-control"
+                 placeholder="e.g. 30" min="1" max="100" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (%) <span class="required">*</span></label>
+          <input type="number" id="e-weight" class="form-control"
+                 placeholder="e.g. 20" min="1" max="100" step="0.5">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assessment Date</label>
+        <input type="date" id="e-date" class="form-control">
+        <div class="form-hint">Changing the date updates when marks can be entered.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" id="edit-btn" onclick="saveAssessmentEdit()">
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <nav class="mobile-nav">
   <a href="<?= BASE_URL ?>/lecturer/dashboard" class="mobile-nav-item">
     <span class="nav-icon">🏠</span><span>Home</span>
@@ -571,6 +637,62 @@ async function createAssessment() {
       });
       Toast.show('success', 'Assessment created.');
       closeCreateModal();
+      window.location.reload();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.hidden = false;
+    }
+  });
+}
+
+// ── Edit Assessment Modal ─────────────────────────────────────────────────────
+function openEditModal(id, name, type, maxScore, weight, date) {
+  document.getElementById('e-id').value     = id;
+  document.getElementById('e-name').value   = name;
+  document.getElementById('e-type').value   = type;
+  document.getElementById('e-max').value    = maxScore;
+  document.getElementById('e-weight').value = weight;
+  document.getElementById('e-date').value   = date || '';
+  const errEl = document.querySelector('[data-edit-error]');
+  errEl.textContent = ''; errEl.hidden = true;
+  document.getElementById('edit-modal').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').hidden = true;
+  document.body.style.overflow = '';
+}
+
+async function saveAssessmentEdit() {
+  const id     = document.getElementById('e-id').value;
+  const name   = document.getElementById('e-name').value.trim();
+  const type   = document.getElementById('e-type').value;
+  const max    = parseFloat(document.getElementById('e-max').value);
+  const weight = parseFloat(document.getElementById('e-weight').value);
+  const date   = document.getElementById('e-date').value;
+  const btn    = document.getElementById('edit-btn');
+  const errEl  = document.querySelector('[data-edit-error]');
+
+  errEl.textContent = ''; errEl.hidden = true;
+
+  if (!name || !type || isNaN(max) || isNaN(weight)) {
+    errEl.textContent = 'Please fill in all required fields.';
+    errEl.hidden = false;
+    return;
+  }
+
+  await Api.withLoading(btn, async () => {
+    try {
+      await Api.post(`${BASE_URL}/api/marks/assessment_edit.php`, {
+        assessment_id:   parseInt(id),
+        name, type,
+        max_score:       max,
+        weight_percent:  weight,
+        assessment_date: date || null,
+      });
+      Toast.show('success', 'Assessment updated.');
+      closeEditModal();
       window.location.reload();
     } catch (err) {
       errEl.textContent = err.message;

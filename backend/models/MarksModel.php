@@ -86,6 +86,70 @@ class MarksModel
     }
 
     /**
+     * Update an existing assessment's editable fields.
+     * Ownership is verified via the unit's lecturer_id.
+     * Weight is re-validated against all other assessments in the unit.
+     *
+     * @param  int   $assessmentId
+     * @param  int   $lecturerId
+     * @param  array $data { name, type, max_score, weight_percent, assessment_date }
+     * @return array { success: bool, message: string }
+     */
+    public static function updateAssessment(int $assessmentId, int $lecturerId, array $data): array
+    {
+        $assessment = DB::row(
+            "SELECT a.id, a.unit_id, u.lecturer_id
+             FROM assessments a
+             JOIN units u ON u.id = a.unit_id
+             WHERE a.id = ?",
+            [$assessmentId]
+        );
+
+        if (!$assessment) {
+            return ['success' => false, 'message' => 'Assessment not found.'];
+        }
+
+        if ((int) $assessment['lecturer_id'] !== $lecturerId) {
+            return ['success' => false, 'message' => 'Unauthorised.'];
+        }
+
+        // Weight check: exclude this assessment's own weight, then add the new value
+        $row = DB::row(
+            "SELECT COALESCE(SUM(weight_percent), 0) AS total
+             FROM assessments
+             WHERE unit_id = ? AND id != ?",
+            [$assessment['unit_id'], $assessmentId]
+        );
+        $otherWeight = (float) ($row['total'] ?? 0);
+        $newWeight   = (float) $data['weight_percent'];
+
+        if ($otherWeight + $newWeight > 100) {
+            $remaining = 100 - $otherWeight;
+            return [
+                'success' => false,
+                'message' => "Weight {$newWeight}% would exceed 100% for this unit. "
+                           . "Maximum allowed here is {$remaining}%.",
+            ];
+        }
+
+        DB::execute(
+            "UPDATE assessments
+             SET name = ?, type = ?, max_score = ?, weight_percent = ?, assessment_date = ?
+             WHERE id = ?",
+            [
+                trim($data['name']),
+                $data['type'],
+                (float) $data['max_score'],
+                $newWeight,
+                $data['assessment_date'] ?: null,
+                $assessmentId,
+            ]
+        );
+
+        return ['success' => true, 'message' => 'Assessment updated.'];
+    }
+
+    /**
      * Get all assessments for a unit, with total marks uploaded per assessment.
      *
      * @param  int  $unitId

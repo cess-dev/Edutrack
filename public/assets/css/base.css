@@ -1417,3 +1417,29 @@ select.form-control {
   .card  { box-shadow: none; border: 1px solid #ccc; }
   .table { font-size: 11px; }
 }
+
+/* ── Password field with show/hide toggle ────────────────────────────────── */
+.password-field { position: relative; display: block; }
+.password-field .form-control { padding-right: 44px; }
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+.password-toggle:focus { outline: none; box-shadow: none; }
+.password-toggle:hover { color: var(--color-text); }
+.password-toggle svg { display: block; }

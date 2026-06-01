@@ -47,6 +47,16 @@ async function saveContact() {
   });
 }
 
+// ── Password visibility toggle ────────────────────────────────────────────────
+function togglePw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const show  = input.type === 'password';
+  input.type  = show ? 'text' : 'password';
+  btn.querySelector('.pw-eye-on').style.display  = show ? '' : 'none';
+  btn.querySelector('.pw-eye-off').style.display = show ? 'none' : '';
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+}
+
 // ── Change password ───────────────────────────────────────────────────────────
 async function changePassword() {
   clearAll('password');

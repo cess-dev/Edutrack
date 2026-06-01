@@ -224,12 +224,20 @@ $pageTitle = 'Marks Management';
                       </button>
                     </td>
                     <td>
-                      <button class="btn btn-primary btn-sm"
-                              onclick="openUploadModal(<?= $a['id'] ?>,
-                                '<?= htmlspecialchars($a['name'], ENT_QUOTES) ?>',
-                                <?= $a['max_score'] ?>)">
-                        Upload Marks
-                      </button>
+                      <?php $examPending = !empty($a['assessment_date']) && $a['assessment_date'] > date('Y-m-d'); ?>
+                      <?php if ($examPending): ?>
+                        <button class="btn btn-sm btn-ghost" disabled
+                                title="Exam date not yet reached (<?= date('d M Y', strtotime($a['assessment_date'])) ?>)">
+                          Upload Marks
+                        </button>
+                      <?php else: ?>
+                        <button class="btn btn-primary btn-sm"
+                                onclick="openUploadModal(<?= $a['id'] ?>,
+                                  '<?= htmlspecialchars($a['name'], ENT_QUOTES) ?>',
+                                  <?= $a['max_score'] ?>)">
+                          Upload Marks
+                        </button>
+                      <?php endif; ?>
                     </td>
                   </tr>
                   <?php endforeach; ?>

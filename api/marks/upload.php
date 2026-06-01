@@ -81,7 +81,8 @@ if ($assessmentId <= 0) {
 
 // Verify the assessment belongs to a unit taught by this lecturer
 $assessment = DB::row(
-    "SELECT a.id, a.unit_id, a.name, a.max_score, u.lecturer_id, u.code AS unit_code
+    "SELECT a.id, a.unit_id, a.name, a.max_score, a.assessment_date,
+            u.lecturer_id, u.code AS unit_code
      FROM assessments a
      JOIN units u ON u.id = a.unit_id
      WHERE a.id = ?",
@@ -99,6 +100,17 @@ if ((int) $assessment['lecturer_id'] !== Auth::id()) {
     echo json_encode([
         'success' => false,
         'message' => 'You are not authorised to upload marks for this assessment.',
+    ]);
+    exit;
+}
+
+// Enforce: marks cannot be entered before the assessment date has arrived
+if (!empty($assessment['assessment_date']) && $assessment['assessment_date'] > date('Y-m-d')) {
+    http_response_code(400);
+    $formatted = date('d M Y', strtotime($assessment['assessment_date']));
+    echo json_encode([
+        'success' => false,
+        'message' => "Marks cannot be entered before the assessment date ({$formatted}).",
     ]);
     exit;
 }

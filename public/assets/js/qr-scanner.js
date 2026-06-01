@@ -117,41 +117,51 @@ const QRScanner = (() => {
   async function start() {
     if (scanning) return;
 
-    _setStatus('loading', 'Requesting camera access...');
+    _setStatus('loading', 'Starting camera…');
     _updateButtons(false);
 
-    // Kick off location in parallel with the camera request
-    if (config.requireLocation) {
-      _startLocationWatch();
+    if (config.requireLocation) _startLocationWatch();
+
+    // Try three constraint sets from strictest to most permissive.
+    // Some drivers reject specific constraints with NotAllowedError even
+    // when permission is granted — falling back to { video: true } fixes it.
+    const attempts = [
+      { video: { facingMode: { ideal: 'environment' } }, audio: false },
+      { video: { facingMode: 'user' },                   audio: false },
+      { video: true,                                     audio: false },
+    ];
+
+    let lastErr = null;
+
+    for (const constraints of attempts) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        lastErr = null;
+        break;                           // success — stop trying
+      } catch (err) {
+        lastErr = err;
+        // Permission errors won't be fixed by looser constraints — stop immediately
+        if (err.name === 'NotAllowedError' || err.name === 'SecurityError') break;
+        // Device/constraint errors — try next set
+      }
     }
 
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode:  { ideal: 'environment' },  // Rear camera
-          width:       { ideal: 1280 },
-          height:      { ideal: 720 },
-        },
-        audio: false,
-      });
-
-      video.srcObject = stream;
-
-      // Wait for video metadata to load before starting loop
-      video.addEventListener('loadedmetadata', () => {
-        video.play();
-        scanning = true;
-        inCooldown = false;
-        lastCode   = null;
-        _setStatus('scanning', 'Scanning... Hold the QR code steady in front of your camera.');
-        _updateButtons(true);
-        _showOverlay(true);
-        _decodeLoop();
-      }, { once: true });
-
-    } catch (err) {
-      _handleCameraError(err);
+    if (lastErr) {
+      _handleCameraError(lastErr);
+      return;
     }
+
+    video.srcObject = stream;
+    video.addEventListener('loadedmetadata', () => {
+      video.play();
+      scanning   = true;
+      inCooldown = false;
+      lastCode   = null;
+      _setStatus('scanning', 'Scanning… Hold the QR code steady in front of your camera.');
+      _updateButtons(true);
+      _showOverlay(true);
+      _decodeLoop();
+    }, { once: true });
   }
 
   // ── Public: stop ───────────────────────────────────────────────────────────
@@ -392,6 +402,13 @@ const QRScanner = (() => {
   }
 
   // ── Private: camera error handler ─────────────────────────────────────────
+  /**
+   * Called after getUserMedia rejects. Queries Permissions API post-failure
+   * so we can distinguish browser-level from OS-level blocks — without
+   * delaying the getUserMedia call itself (which would break the user-gesture).
+   *
+   * @param {DOMException} err
+   */
   function _handleCameraError(err) {
     const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
     const isSecure    = location.protocol === 'https:';
@@ -399,105 +416,190 @@ const QRScanner = (() => {
     switch (err.name) {
       case 'NotAllowedError':
       case 'PermissionDeniedError':
+      case 'SecurityError':
         if (!isLocalhost && !isSecure) {
-          // LAN/IP access over HTTP — browser silently blocks camera
           _showPermissionGuide('https');
         } else {
-          // localhost or HTTPS but user clicked Block
           _showPermissionGuide('blocked');
         }
         break;
 
       case 'NotFoundError':
       case 'DevicesNotFoundError':
-        _setStatus('error', 'No camera found on this device. Use the manual token entry below.');
+        _showRetryPanel(
+          'No camera found.',
+          'Check that a camera is connected, or use the manual token entry below.'
+        );
         break;
 
       case 'NotReadableError':
       case 'TrackStartError':
-        _setStatus('error', 'Camera is already in use by another app. Close it and try again.');
+        _showPermissionGuide('inuse');
         break;
-
-      case 'OverconstrainedError':
-        _retryWithBasicConstraints();
-        return;
 
       case 'NotSupportedError':
         _showPermissionGuide('https');
         break;
 
       default:
-        _setStatus('error', `Camera error (${err.name}): ${err.message || 'unknown'}. Try refreshing.`);
+        _showRetryPanel(
+          `Camera error: ${err.name}`,
+          err.message || 'Try closing other apps that use the camera, then click Try Again.'
+        );
     }
 
     _updateButtons(false);
   }
 
+  /** Simple panel with a message and a Try Again button. */
+  function _showRetryPanel(title, detail) {
+    if (!statusEl) return;
+    statusEl.innerHTML = `
+      <div style="text-align:left;font-size:13px;line-height:1.7">
+        <strong style="color:var(--color-error,#c0392b)">❌ ${title}</strong>
+        <p style="margin:6px 0 10px">${detail}</p>
+        <button onclick="QRScanner.start()"
+                style="padding:6px 18px;background:var(--color-accent);
+                       color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">
+          ▶ Try Again
+        </button>
+      </div>`;
+    statusEl.style.color = 'inherit';
+    statusEl.setAttribute('data-state', 'error');
+  }
+
   /**
-   * Render an in-page step-by-step fix guide instead of a bare error message.
-   * @param {'blocked'|'https'} reason
+   * Render an in-page step-by-step fix guide.
+   * @param {'blocked'|'os'|'https'|'inuse'} reason
    */
   function _showPermissionGuide(reason) {
     if (!statusEl) return;
 
+    const isMobile  = /android|iphone|ipad/i.test(navigator.userAgent);
+    const isChrome  = /chrome/i.test(navigator.userAgent) && !/edg/i.test(navigator.userAgent);
+    const isEdge    = /edg/i.test(navigator.userAgent);
+    const isFirefox = /firefox/i.test(navigator.userAgent);
+    const isSafari  = /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+    const isWindows = /windows/i.test(navigator.userAgent);
+    const isMac     = /mac os/i.test(navigator.userAgent) && !isMobile;
+
     let html = '';
 
-    if (reason === 'https') {
+    // ── OS-level block ────────────────────────────────────────────────────────
+    if (reason === 'os') {
+      let osSteps = '';
+      if (isWindows) {
+        osSteps = `
+          <li>Press <strong>Windows + I</strong> to open Settings.</li>
+          <li>Go to <strong>Privacy &amp; security → Camera</strong>.</li>
+          <li>Make sure <strong>"Camera access"</strong> is turned <strong>On</strong>.</li>
+          <li>Scroll down and make sure <strong>${isChrome ? 'Google Chrome' : isEdge ? 'Microsoft Edge' : 'your browser'}</strong>
+              is also set to <strong>On</strong>.</li>
+          <li>Return here and click <strong>Start Scanner</strong> again.</li>`;
+      } else if (isMac) {
+        osSteps = `
+          <li>Open <strong>System Settings → Privacy &amp; Security → Camera</strong>.</li>
+          <li>Enable your browser in the list.</li>
+          <li>Restart the browser and return here.</li>`;
+      } else {
+        osSteps = `
+          <li>Check your device's <strong>Privacy / Camera settings</strong> and make
+              sure your browser is allowed to use the camera.</li>
+          <li>Return here and try again.</li>`;
+      }
       html = `
-        <div style="text-align:left;font-size:13px;line-height:1.6">
-          <strong style="color:var(--color-error)">❌ Camera blocked — HTTPS required</strong>
+        <div style="text-align:left;font-size:13px;line-height:1.7">
+          <strong style="color:var(--color-error,#c0392b)">❌ Camera blocked by your device</strong>
+          <p style="margin:8px 0 4px">
+            Your browser reports that camera permission is <em>already granted</em> for this
+            site, but the camera is still being blocked. This usually means
+            <strong>your operating system is blocking the browser from accessing the camera.</strong>
+          </p>
+          <p style="margin:0 0 6px;font-weight:600">To fix it:</p>
+          <ol style="margin:0;padding-left:20px">${osSteps}</ol>
+          <button onclick="location.reload()"
+                  style="margin-top:10px;padding:6px 16px;background:var(--color-accent);
+                         color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">
+            🔄 Refresh &amp; Try Again
+          </button>
+        </div>`;
+
+    // ── HTTPS required ────────────────────────────────────────────────────────
+    } else if (reason === 'https') {
+      html = `
+        <div style="text-align:left;font-size:13px;line-height:1.7">
+          <strong style="color:var(--color-error,#c0392b)">❌ Camera blocked — HTTPS required</strong>
           <p style="margin:8px 0 4px">
             Browsers only allow camera access on <strong>secure (HTTPS) pages</strong>.
-            You are currently on HTTP over a network address.
+            You are on HTTP over a network address.
           </p>
-          <p style="margin:0 0 8px;font-weight:600">Options:</p>
+          <p style="margin:0 0 6px;font-weight:600">Options:</p>
           <ol style="margin:0;padding-left:20px">
             <li>Ask your IT admin to enable HTTPS on the school server.</li>
-            <li>Access via <strong>localhost</strong> on the same computer
-                (camera works on HTTP for localhost only).</li>
-            <li>Use the <strong>manual token entry</strong> below as a workaround
-                while HTTPS is being set up.</li>
+            <li>Access via <strong>localhost</strong> on the same computer.</li>
+            <li>Use the <strong>manual token entry</strong> below as a workaround.</li>
           </ol>
         </div>`;
-    } else {
-      const isChrome  = /chrome/i.test(navigator.userAgent) && !/edg/i.test(navigator.userAgent);
-      const isFirefox = /firefox/i.test(navigator.userAgent);
-      const isSafari  = /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
-      const isMobile  = /android|iphone|ipad/i.test(navigator.userAgent);
 
+    // ── Camera in use ─────────────────────────────────────────────────────────
+    } else if (reason === 'inuse') {
+      html = `
+        <div style="text-align:left;font-size:13px;line-height:1.7">
+          <strong style="color:var(--color-error,#c0392b)">❌ Camera is in use by another app</strong>
+          <p style="margin:8px 0 4px">
+            Another application (e.g. Zoom, Teams, another browser tab) is currently
+            using the camera. Close it, then try again.
+          </p>
+          <button onclick="QRScanner.start()"
+                  style="margin-top:8px;padding:6px 16px;background:var(--color-accent);
+                         color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">
+            ▶ Try Again
+          </button>
+        </div>`;
+
+    // ── Browser-level block ('blocked') ───────────────────────────────────────
+    } else {
       let steps = '';
-      if (isMobile && isChrome) {
+      if (isMobile && isSafari) {
+        steps = `
+          <li>Open <strong>Settings → Safari → Camera</strong> on your iPhone/iPad.</li>
+          <li>Set to <strong>Allow</strong>.</li>
+          <li>Return here and refresh.</li>`;
+      } else if (isMobile && isChrome) {
         steps = `
           <li>Tap the <strong>lock / info icon</strong> in the address bar.</li>
           <li>Tap <strong>Permissions → Camera → Allow</strong>.</li>
           <li>Refresh this page.</li>`;
-      } else if (isMobile && isSafari) {
-        steps = `
-          <li>Open <strong>Settings → Safari → Camera</strong>.</li>
-          <li>Set to <strong>Allow</strong>.</li>
-          <li>Return here and refresh.</li>`;
       } else if (isFirefox) {
         steps = `
           <li>Click the <strong>camera icon</strong> in the address bar.</li>
-          <li>Click <strong>Blocked Temporarily</strong> → choose <strong>Allow</strong>.</li>
+          <li>Choose <strong>Allow Camera</strong>.</li>
           <li>Refresh this page.</li>`;
       } else {
+        // Chrome / Edge desktop
         steps = `
-          <li>Click the <strong>lock / info icon</strong> in the address bar.</li>
-          <li>Find <strong>Camera</strong> and set it to <strong>Allow</strong>.</li>
-          <li>Refresh this page.</li>`;
+          <li>Click the <strong>🔒 lock icon</strong> in the address bar.</li>
+          <li>Click <strong>Camera</strong> → set to <strong>Allow</strong>.</li>
+          <li>Click <strong>Refresh</strong> that appears, or press F5.</li>`;
       }
-
       html = `
-        <div style="text-align:left;font-size:13px;line-height:1.6">
-          <strong style="color:var(--color-error)">❌ Camera permission denied</strong>
+        <div style="text-align:left;font-size:13px;line-height:1.7">
+          <strong style="color:var(--color-error,#c0392b)">❌ Camera permission denied</strong>
           <p style="margin:8px 0 4px">To fix this:</p>
           <ol style="margin:0;padding-left:20px">${steps}</ol>
-          <button onclick="location.reload()"
-                  style="margin-top:10px;padding:6px 16px;background:var(--color-accent);
-                         color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">
-            🔄 Refresh Now
-          </button>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button onclick="QRScanner.start()"
+                    style="padding:6px 16px;background:var(--color-accent);
+                           color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">
+              ▶ Try Again
+            </button>
+            <button onclick="location.reload()"
+                    style="padding:6px 16px;background:transparent;
+                           color:var(--color-accent);border:1px solid var(--color-accent);
+                           border-radius:6px;cursor:pointer;font-size:13px">
+              🔄 Refresh Page
+            </button>
+          </div>
         </div>`;
     }
 

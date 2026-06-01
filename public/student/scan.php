@@ -263,6 +263,37 @@ $enrolledUnits = DB::rows(
 <script>
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
 
+// ── Camera pre-flight diagnostic ──────────────────────────────────────────────
+// Only blocks the button for situations that are guaranteed to fail.
+// Permissions API is used for hints only — getUserMedia is the final word.
+(async () => {
+  const statusEl = document.getElementById('scanner-status');
+  const startBtn = document.getElementById('start-btn');
+  if (!statusEl) return;
+
+  // Guaranteed failure: not a secure context on a network address
+  if (!window.isSecureContext) {
+    statusEl.style.color = 'var(--color-warning,#C47B12)';
+    statusEl.textContent = '⚠️ Camera requires HTTPS on this network. Use manual token entry below.';
+    if (startBtn) startBtn.disabled = true;
+    return;
+  }
+
+  // Guaranteed failure: browser doesn't expose the camera API at all
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+    statusEl.style.color = 'var(--color-error,#c0392b)';
+    statusEl.textContent = '❌ Your browser does not support camera access. Try Chrome or Firefox.';
+    if (startBtn) startBtn.disabled = true;
+    return;
+  }
+
+  // Everything else: show a status hint but ALWAYS leave the button enabled.
+  // The Permissions API state can be stale or origin-mismatched — only a real
+  // getUserMedia call gives the definitive answer.
+  statusEl.style.color = '';
+  statusEl.textContent = '📷 Press Start Scanner to activate your camera.';
+})();
+
 // ── Show HTTPS warning if not in a secure context ─────────────────────────────
 const _isSecureCtx = location.protocol === 'https:'
                   || location.hostname === 'localhost'

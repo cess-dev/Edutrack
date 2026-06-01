@@ -101,7 +101,7 @@ class Auth
         header('X-Frame-Options: SAMEORIGIN');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('X-XSS-Protection: 1; mode=block');
-        header('Permissions-Policy: camera=(), microphone=(), geolocation=(), fullscreen=()');
+        header('Permissions-Policy: camera=(self), microphone=(), geolocation=(self), fullscreen=(self)');
         header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
 
         if (self::isHttps()) {

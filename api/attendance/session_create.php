@@ -93,6 +93,37 @@ if (!$unit) {
     exit;
 }
 
+// ── Check for a conflicting active session on a different unit ────────────────
+$force = (bool) ($body['force'] ?? false);
+
+$conflictSession = DB::row(
+    "SELECT s.id, u.code AS unit_code, u.name AS unit_name
+     FROM attendance_sessions s
+     JOIN units u ON u.id = s.unit_id
+     WHERE s.lecturer_id = ? AND s.is_active = 1 AND s.unit_id != ?
+     LIMIT 1",
+    [$lecturerId, $unitId]
+);
+
+if ($conflictSession && !$force) {
+    http_response_code(409);
+    echo json_encode([
+        'success'        => false,
+        'error_code'     => 'ACTIVE_SESSION_EXISTS',
+        'message'        => "You have an active {$conflictSession['unit_code']} session.",
+        'active_session' => [
+            'id'        => (int) $conflictSession['id'],
+            'unit_code' => $conflictSession['unit_code'],
+            'unit_name' => $conflictSession['unit_name'],
+        ],
+    ]);
+    exit;
+}
+
+if ($conflictSession && $force) {
+    QRHelper::closeSession($conflictSession['id'], $lecturerId);
+}
+
 // ── Read active academic context from system_settings ─────────────────────────
 $academicYear = DB::row(
     "SELECT setting_value FROM system_settings WHERE setting_key = 'academic_year'"

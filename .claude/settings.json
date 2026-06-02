@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root -e \"SHOW DATABASES;\")",
+      "Bash(\"C:/xampp/mysql/bin/mysql.exe\" -u root edutrack_db -e \"CREATE OR REPLACE VIEW vw_attendance_summary AS SELECT e.student_id, e.unit_id, e.academic_year, e.semester, u.full_name AS student_name, un.code AS unit_code, un.name AS unit_name, COUNT\\(DISTINCT s.id\\) AS total_sessions, COUNT\\(DISTINCT CASE WHEN al.status = 'present' THEN al.session_id END\\) AS attended, COUNT\\(DISTINCT CASE WHEN al.status = 'absent' THEN al.session_id END\\) AS absent, COUNT\\(DISTINCT CASE WHEN al.status = 'excused' THEN al.session_id END\\) AS excused, ROUND\\(COUNT\\(DISTINCT CASE WHEN al.status = 'present' THEN al.session_id END\\) / NULLIF\\(COUNT\\(DISTINCT s.id\\), 0\\) * 100, 1\\) AS attendance_percent FROM enrollments e JOIN users u ON u.id = e.student_id JOIN units un ON un.id = e.unit_id LEFT JOIN attendance_sessions s ON s.unit_id = e.unit_id AND s.academic_year = e.academic_year AND s.semester = e.semester LEFT JOIN attendance_logs al ON al.session_id = s.id AND al.student_id = e.student_id GROUP BY e.student_id, e.unit_id, e.academic_year, e.semester, u.full_name, un.code, un.name;\")",
+      "Bash(C:/xampp/mysql/bin/mysql.exe -u root edutrack_db -e ' *)"
+    ]
+  }
+}

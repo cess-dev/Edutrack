@@ -212,7 +212,7 @@ $pageTitle = 'Dashboard';
               <div class="card-title">My Units</div>
               <div class="card-subtitle"><?= count($units) ?> unit(s) this semester</div>
             </div>
-            <a href="<?= BASE_URL ?>/public/lecturer/units.php" class="btn btn-secondary btn-sm">
+            <a href="<?= BASE_URL ?>/lecturer/session/start" class="btn btn-secondary btn-sm">
               View all
             </a>
           </div>
@@ -310,6 +310,25 @@ $pageTitle = 'Dashboard';
 </div><!-- /layout -->
 
 
+<!-- ── Conflict Modal ────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="conflict-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Active Session Running</h2>
+      <button class="modal-close" onclick="closeConflictModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="conflict-message" style="margin:0;font-size:var(--text-sm);line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConflictModal()">Cancel</button>
+      <button class="btn btn-danger" id="conflict-confirm-btn" onclick="confirmEndAndStart()">
+        Yes, End &amp; Start
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Start Session Modal ───────────────────────────────────────────────── -->
 <div class="modal-backdrop" id="session-modal" hidden>
   <div class="modal">
@@ -360,7 +379,7 @@ $pageTitle = 'Dashboard';
   <a href="<?= BASE_URL ?>/lecturer/dashboard" class="mobile-nav-item active">
     <span class="nav-icon">🏠</span><span>Home</span>
   </a>
-  <a href="<?= BASE_URL ?>/public/lecturer/units.php" class="mobile-nav-item">
+  <a href="<?= BASE_URL ?>/lecturer/session/start" class="mobile-nav-item">
     <span class="nav-icon">📚</span><span>Units</span>
   </a>
   <a href="<?= BASE_URL ?>/lecturer/marks" class="mobile-nav-item">
@@ -377,7 +396,10 @@ $pageTitle = 'Dashboard';
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
 
 // ── Session modal ─────────────────────────────────────────────────────────────
-function openSessionModal(preselectedUnitId = null, unitCode = null) {
+let _pendingUnitId = null;
+let _pendingNote   = null;
+
+function openSessionModal(preselectedUnitId = null) {
   const modal = document.getElementById('session-modal');
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
@@ -397,13 +419,27 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
-// Close modal on backdrop click
 document.getElementById('session-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
+function openConflictModal(activeUnitCode, activeUnitName, newUnitLabel) {
+  document.getElementById('conflict-message').textContent =
+    `End "${activeUnitCode} — ${activeUnitName}" session to start "${newUnitLabel}" session?`;
+  document.getElementById('conflict-modal').hidden = false;
+}
+
+function closeConflictModal() {
+  document.getElementById('conflict-modal').hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.getElementById('conflict-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeConflictModal();
+});
+
 // ── Start session ─────────────────────────────────────────────────────────────
-async function startSession() {
+async function startSession(force = false) {
   const unitId = document.getElementById('modal-unit').value;
   const note   = document.getElementById('modal-note').value.trim();
   const btn    = document.getElementById('start-session-btn');
@@ -413,18 +449,47 @@ async function startSession() {
     return;
   }
 
+  _pendingUnitId = unitId;
+  _pendingNote   = note;
+
   await Api.withLoading(btn, async () => {
     try {
       const data = await Api.post(`${BASE_URL}/api/attendance/session_create.php`, {
         unit_id: parseInt(unitId),
         note:    note || null,
+        force:   force,
       });
 
       closeModal();
-
-      // Redirect to the live QR display page
       window.location.href = `${BASE_URL}/lecturer/session/live?id=${data.session_id}`;
 
+    } catch (err) {
+      if (err.body?.error_code === 'ACTIVE_SESSION_EXISTS') {
+        const active       = err.body.active_session;
+        const selectEl     = document.getElementById('modal-unit');
+        const newUnitLabel = selectEl.options[selectEl.selectedIndex].text;
+        closeModal();
+        openConflictModal(active.unit_code, active.unit_name, newUnitLabel);
+      } else {
+        Api.showError(err);
+      }
+    }
+  });
+}
+
+async function confirmEndAndStart() {
+  const btn = document.getElementById('conflict-confirm-btn');
+
+  await Api.withLoading(btn, async () => {
+    try {
+      const data = await Api.post(`${BASE_URL}/api/attendance/session_create.php`, {
+        unit_id: parseInt(_pendingUnitId),
+        note:    _pendingNote || null,
+        force:   true,
+      });
+
+      closeConflictModal();
+      window.location.href = `${BASE_URL}/lecturer/session/live?id=${data.session_id}`;
     } catch (err) {
       Api.showError(err);
     }

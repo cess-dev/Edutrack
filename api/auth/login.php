@@ -159,23 +159,25 @@ if ($smtpOn && $deliverable) {
     // ── Try to email the code ─────────────────────────────────────────────────
     $sent = EmailService::sendOtp($user['email'], $user['full_name'], $otp);
 
-    if (!$sent) {
-        // Email failed — OTP remains stored in DB so the admin can read it
-        // from the Users page and forward it via the corrected email account.
-        unset($_SESSION['otp_pending']);
-        http_response_code(503);
-        echo json_encode([
-            'success' => false,
-            'message' => 'We could not send your verification code by email. '
-                       . 'Please try again later. Your administrator can check '
-                       . 'the email configuration.',
-        ]);
-        exit;
-    }
-
     // Mask email for display: "ed***@gmail.com"
     [$local, $domain] = explode('@', $user['email'], 2);
     $emailHint = substr($local, 0, min(3, strlen($local))) . '***@' . $domain;
+
+    if (!$sent) {
+        // Email failed — OTP is still valid in session + DB.
+        // Keep otp_pending alive so the admin can relay the code to the user
+        // via phone/WhatsApp and they can still enter it on the next screen.
+        echo json_encode([
+            'success'      => true,
+            'step'         => 'otp',
+            'email_hint'   => $emailHint,
+            'email_failed' => true,
+            'message'      => 'Your login code could not be sent to '
+                            . $emailHint . '. Please contact your administrator, '
+                            . 'who can provide the code directly.',
+        ]);
+        exit;
+    }
 
     echo json_encode([
         'success'    => true,

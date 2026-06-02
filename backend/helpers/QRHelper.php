@@ -341,6 +341,7 @@ class QRHelper
     {
         $session = DB::row(
             "SELECT s.id, s.unit_id, s.expires_at, s.is_active,
+                    s.academic_year, s.semester,
                     u.code AS unit_code, u.name AS unit_name
              FROM attendance_sessions s
              JOIN units u ON u.id = s.unit_id
@@ -362,8 +363,8 @@ class QRHelper
         $totalEnrolled = DB::row(
             "SELECT COUNT(*) AS cnt
              FROM enrollments
-             WHERE unit_id = ? AND academic_year = ?",
-            [$session['unit_id'] ?? 0, date('Y') . '/' . (date('Y') + 1)]
+             WHERE unit_id = ? AND academic_year = ? AND semester = ?",
+            [$session['unit_id'] ?? 0, $session['academic_year'] ?? '', $session['semester'] ?? 0]
         );
 
         return [

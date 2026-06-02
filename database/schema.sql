@@ -484,7 +484,6 @@ LEFT JOIN attendance_sessions s
     ON s.unit_id = e.unit_id
     AND s.academic_year = e.academic_year
     AND s.semester = e.semester
-    AND s.is_active = 0
 LEFT JOIN attendance_logs al
     ON al.session_id = s.id
     AND al.student_id = e.student_id

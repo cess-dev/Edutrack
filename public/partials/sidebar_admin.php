@@ -16,7 +16,7 @@ $pendingDisputes = (int)(DB::row(
     "SELECT COUNT(*) AS cnt FROM disputes WHERE status = 'pending'"
 )['cnt'] ?? 0);
 
-$activeSessions = (int)(DB::row(
+$_sidebarActiveSessions = (int)(DB::row(
     "SELECT COUNT(*) AS cnt FROM attendance_sessions WHERE is_active = 1"
 )['cnt'] ?? 0);
 
@@ -101,8 +101,8 @@ $usersBadge = $pendingPasswordResets + $activeOtpCount;
        class="nav-item <?= adminNavActive('attendance', $currentPage) ?>">
       <span class="nav-icon">📊</span>
       <span>Attendance Overview</span>
-      <?php if ($activeSessions > 0): ?>
-        <span class="nav-badge"><?= $activeSessions ?></span>
+      <?php if ($_sidebarActiveSessions > 0): ?>
+        <span class="nav-badge"><?= $_sidebarActiveSessions ?></span>
       <?php endif; ?>
     </a>
 

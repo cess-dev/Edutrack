@@ -277,9 +277,28 @@
 /* ── Hidden on mobile ────────────────────────────────────────────────────── */
 .hidden-mobile { display: inline; }
 
+/* Tablet: quick grid drops from 3 columns to 2 */
+@media (max-width: 768px) {
+  .admin-quick-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 640px) {
   .admin-quick-grid    { grid-template-columns: repeat(2, 1fr); }
   .hidden-mobile       { display: none; }
   .user-toolbar        { flex-direction: column; align-items: stretch; }
   .user-search         { max-width: 100%; }
+
+  /* Course tree: let header actions wrap below the course name */
+  .course-node-header  { flex-wrap: wrap; }
+
+  /* Unit rows: wrap code + name + lecturer + actions onto multiple lines */
+  .unit-node-row       { flex-wrap: wrap; row-gap: var(--space-2); }
+
+  /* Settings snapshot: allow value to wrap if long */
+  .snapshot-row        { flex-wrap: wrap; }
+  .snapshot-value      { text-align: left; }
+
+  /* Audit row: allow action text to wrap */
+  .audit-row           { flex-wrap: wrap; }
+  .audit-time          { width: 100%; margin-left: 36px; }
 }

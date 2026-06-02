@@ -287,3 +287,24 @@
 
 /* ── At-risk highlight ───────────────────────────────────────────────────── */
 .at-risk-row td { background: var(--color-error-light) !important; }
+
+@media (max-width: 640px) {
+  /* Reduce QR panel padding so the code fits without side-scroll */
+  .qr-panel          { padding: var(--space-4); }
+  .qr-code-container { padding: var(--space-3); }
+
+  /* Chart: drop fixed height slightly so it doesn't dominate the screen */
+  .chart-container { height: 200px; }
+
+  /* Active session banner: let actions wrap below the session info */
+  .active-session-banner  { flex-direction: column; align-items: flex-start; }
+  .active-session-actions { flex-direction: row; flex-wrap: wrap; width: 100%; }
+
+  /* Unit row: allow code badge + name + button to wrap on very narrow screens */
+  .unit-row { flex-wrap: wrap; }
+
+  /* Modal inner padding (matches base.css mobile overrides) */
+  .modal-header { padding-left: var(--space-4); padding-right: var(--space-4); }
+  .modal-body   { padding: var(--space-4); }
+  .modal-footer { padding: var(--space-3) var(--space-4); }
+}

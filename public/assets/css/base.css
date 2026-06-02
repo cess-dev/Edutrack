@@ -1339,6 +1339,11 @@ select.form-control {
     outline-offset: 2px;
   }
 
+  /* Tighten modal inner padding so content doesn't overflow on narrow screens */
+  .modal-header { padding-left: var(--space-4); padding-right: var(--space-4); }
+  .modal-body   { padding: var(--space-4); }
+  .modal-footer { padding: var(--space-3) var(--space-4); }
+
   /* Hide the legacy mobile bottom navigation menu in favor of a sidebar drawer. */
   .mobile-nav {
     display: none;

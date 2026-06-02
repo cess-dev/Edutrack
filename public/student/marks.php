@@ -137,7 +137,7 @@ $pageTitle = 'My Marks';
 
               <!-- Assessments table -->
               <div class="unit-marks-body">
-                <table class="table">
+                <table class="table" style="min-width:560px">
                   <thead>
                     <tr>
                       <th>Assessment</th>

@@ -356,13 +356,37 @@
   font-size: var(--text-sm);
 }
 
+/* Allow the assessment table to scroll horizontally on small screens */
+.unit-marks-body { overflow-x: auto; }
+
 @media (max-width: 640px) {
+  /* Unit attendance list */
   .unit-attendance-row {
     grid-template-columns: 1fr;
     gap: var(--space-2);
   }
-
   .unit-att-pct { text-align: left; }
+
+  /* Welcome strip: stack vertically and make scan button full-width */
+  .welcome-strip  { flex-direction: column; align-items: stretch; }
+  .welcome-name   { font-size: var(--text-xl); }
+  .scan-cta       { width: 100%; justify-content: center; }
+
+  /* Recent attendance log rows: allow text to wrap, top-align when it does */
+  .log-row        { align-items: flex-start; }
+  .log-info       { min-width: 0; }
+  .log-unit       { white-space: normal; }
+
+  /* Recent marks rows: same treatment */
+  .mark-preview-row { align-items: flex-start; }
+  .mark-info        { min-width: 0; }
+  .mark-name        { white-space: normal; }
+
+  /* Unit marks header: stack unit name + grade pill */
+  .unit-marks-header { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+
+  /* Weighted total row: stack label + value */
+  .unit-weighted-total { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
 
   .scan-page-wrapper { padding: 0 var(--space-2); }
 }

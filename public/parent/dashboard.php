@@ -454,5 +454,6 @@ function switchChild(panelId, tabEl) {
 }
 </script>
 
+<?php include __DIR__ . '/../partials/parent_ai_widget.php'; ?>
 </body>
 </html>

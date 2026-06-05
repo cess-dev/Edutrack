@@ -103,10 +103,65 @@ $pageTitle = 'System Settings';
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="school_phone_1">
+              Contact Phone Number 1
+            </label>
+            <input type="tel"
+                   id="school_phone_1"
+                   name="school_phone_1"
+                   class="form-control"
+                   value="<?= settingVal($settings, 'school_phone_1') ?>"
+                   placeholder="e.g. +254 700 123 456"
+                   maxlength="30">
+            <div class="form-hint">
+              Primary school phone. The AI will refer callers here.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="school_phone_2">
+              Contact Phone Number 2
+            </label>
+            <input type="tel"
+                   id="school_phone_2"
+                   name="school_phone_2"
+                   class="form-control"
+                   value="<?= settingVal($settings, 'school_phone_2') ?>"
+                   placeholder="e.g. +254 711 987 654"
+                   maxlength="30">
+            <div class="form-hint">
+              Secondary / alternative school phone (optional).
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="school_email">
+            School Contact Email
+          </label>
+          <input type="email"
+                 id="school_email"
+                 name="school_email"
+                 class="form-control"
+                 value="<?= settingVal($settings, 'school_email') ?>"
+                 placeholder="e.g. info@school.ac.ke"
+                 maxlength="150">
+          <div class="form-hint">
+            General enquiry email. The AI will direct parents and students here when they need direct contact.
+          </div>
+        </div>
+
         <div class="form-actions" style="padding-top:var(--space-4)">
           <button class="btn btn-primary"
-                  onclick="saveSetting('school_name', 'school_name')">
-            Save Institution Name
+                  onclick="saveMultipleOptional([
+                    'school_name',
+                    'school_phone_1',
+                    'school_phone_2',
+                    'school_email'
+                  ], ['school_name'])">
+            Save Institution Details
           </button>
         </div>
       </div>
@@ -410,6 +465,27 @@ async function saveSetting(fieldId, key) {
       settings: [{ key, value }],
     });
     Toast.show('success', 'Setting saved.');
+  } catch (err) {
+    Api.showError(err);
+  }
+}
+
+// ── Save multiple fields, some of which are optional (may be empty) ──────────
+async function saveMultipleOptional(fieldIds, requiredIds = []) {
+  const settings = fieldIds.map(id => ({
+    key:   id,
+    value: document.getElementById(id)?.value?.trim() ?? '',
+  }));
+
+  const empty = settings.find(s => requiredIds.includes(s.key) && s.value === '');
+  if (empty) {
+    Toast.show('error', `"${empty.key}" cannot be empty.`);
+    return;
+  }
+
+  try {
+    await Api.post(`${BASE_URL}/api/admin/settings_update.php`, { settings });
+    Toast.show('success', 'Settings saved successfully.');
   } catch (err) {
     Api.showError(err);
   }

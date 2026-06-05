@@ -38,6 +38,14 @@ try {
 }
 
 $usersBadge = $pendingPasswordResets + $activeOtpCount;
+
+try {
+    $_sidebarOpenIncidents = (int)(DB::row(
+        "SELECT COUNT(*) AS cnt FROM parent_ai_incidents WHERE status = 'open'"
+    )['cnt'] ?? 0);
+} catch (PDOException $e) {
+    $_sidebarOpenIncidents = 0;
+}
 ?>
 <aside class="sidebar">
   <div class="sidebar-brand">
@@ -112,6 +120,15 @@ $usersBadge = $pendingPasswordResets + $activeOtpCount;
       <span>Disputes</span>
       <?php if ($pendingDisputes > 0): ?>
         <span class="nav-badge"><?= $pendingDisputes ?></span>
+      <?php endif; ?>
+    </a>
+
+    <a href="<?= BASE_URL ?>/admin/incidents"
+       class="nav-item <?= adminNavActive('incidents', $currentPage) ?>">
+      <span class="nav-icon">🚨</span>
+      <span>Parent Reports</span>
+      <?php if ($_sidebarOpenIncidents > 0): ?>
+        <span class="nav-badge"><?= $_sidebarOpenIncidents ?></span>
       <?php endif; ?>
     </a>
 

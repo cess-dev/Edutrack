@@ -467,5 +467,6 @@ $pageTitle = htmlspecialchars(explode(' ', $child['full_name'])[0]) . "'s Attend
 
 <script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
 
+<?php include __DIR__ . '/../partials/parent_ai_widget.php'; ?>
 </body>
 </html>

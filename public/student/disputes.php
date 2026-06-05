@@ -447,6 +447,6 @@ if (url.searchParams.has('session_id')) {
   window.history.replaceState({}, document.title, url.toString());
 }
 </script>
-
+<?php include __DIR__ . '/../partials/ai_chat_widget.php'; ?>
 </body>
 </html>

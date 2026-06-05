@@ -349,6 +349,6 @@ $pageTitle = 'My Marks';
   .gpa-block   { flex: 1; min-width: 80px; }
 }
 </style>
-
+<?php include __DIR__ . '/../partials/ai_chat_widget.php'; ?>
 </body>
 </html>

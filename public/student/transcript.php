@@ -219,5 +219,6 @@ $pageTitle = 'My Transcript';
 </nav>
 
 <script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
+<?php include __DIR__ . '/../partials/ai_chat_widget.php'; ?>
 </body>
 </html>

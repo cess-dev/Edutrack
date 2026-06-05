@@ -44,6 +44,9 @@ if (empty($incoming) || !is_array($incoming)) {
 // ── Allowed setting keys (whitelist — never allow arbitrary key injection) ────
 $allowedKeys = [
     'school_name',
+    'school_phone_1',
+    'school_phone_2',
+    'school_email',
     'academic_year',
     'active_semester',
     'attendance_threshold',
@@ -133,6 +136,25 @@ foreach ($incoming as $item) {
                 exit;
             }
             $value = substr($value, 0, 150);
+            break;
+
+        case 'school_phone_1':
+        case 'school_phone_2':
+            if ($value !== '' && !preg_match('/^\+?[\d\s\-\(\)]{7,20}$/', $value)) {
+                http_response_code(400);
+                echo json_encode(['success'=>false,'message'=>'Phone number must be 7–20 digits and may include +, spaces, hyphens, or parentheses.']);
+                exit;
+            }
+            $value = substr($value, 0, 30);
+            break;
+
+        case 'school_email':
+            if ($value !== '' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                http_response_code(400);
+                echo json_encode(['success'=>false,'message'=>'School email must be a valid email address.']);
+                exit;
+            }
+            $value = strtolower(substr($value, 0, 150));
             break;
 
         case 'academic_year':

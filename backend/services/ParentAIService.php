@@ -87,12 +87,22 @@ class ParentAIService
 
             if (str_starts_with($trimmed, 'ACTION:report_absence:')) {
                 $parts = explode(':', $trimmed, 5);
-                // ACTION : report_absence : student_id : date : reason
-                $studentId = (int) ($parts[2] ?? 0);
-                $date      = trim($parts[3] ?? date('Y-m-d'));
-                $reason    = trim($parts[4] ?? 'unspecified');
+                // ACTION : report_absence : student_id : date : reason|||proof
+                $studentId    = (int) ($parts[2] ?? 0);
+                $date         = trim($parts[3] ?? date('Y-m-d'));
+                $reasonRaw    = trim($parts[4] ?? '');
+                $reasonParts  = explode('|||', $reasonRaw, 2);
+                $reason       = trim($reasonParts[0]);
+                $proof        = trim($reasonParts[1] ?? '');
 
-                $result    = self::executeReportAbsence($parentId, $studentId, $date, $reason);
+                // Reject if reason or proof is missing/generic
+                $genericTerms = ['unspecified', 'unknown', 'none', 'n/a', ''];
+                if (in_array(strtolower($reason), $genericTerms, true) || empty($proof)) {
+                    $actions[] = ['success' => false, 'message' => 'Absence not recorded: reason or proof missing.'];
+                    continue;
+                }
+
+                $result    = self::executeReportAbsence($parentId, $studentId, $date, $reason, $proof);
                 $actions[] = $result;
                 // Do not add this line to clean output
 
@@ -119,7 +129,8 @@ class ParentAIService
         int    $parentId,
         int    $studentId,
         string $date,
-        string $reason
+        string $reason,
+        string $proof = ''
     ): array {
         $link = DB::row(
             "SELECT u.full_name FROM parent_student_links psl
@@ -147,9 +158,9 @@ class ParentAIService
         }
 
         DB::insert(
-            "INSERT INTO parent_absence_reports (parent_id, student_id, report_date, reason)
-             VALUES (?, ?, ?, ?)",
-            [$parentId, $studentId, $date, $reason]
+            "INSERT INTO parent_absence_reports (parent_id, student_id, report_date, reason, proof_description)
+             VALUES (?, ?, ?, ?, ?)",
+            [$parentId, $studentId, $date, $reason, $proof ?: null]
         );
 
         $sessions = DB::rows(
@@ -238,11 +249,19 @@ class ParentAIService
         }
         $lines[] = '';
         $lines[] = "ACTIONS — when you need to record something, include ONE of these lines BEFORE your response text:";
-        $lines[] = "  To report absence: ACTION:report_absence:STUDENT_ID:{$today}:reason";
+        $lines[] = "  To report absence: ACTION:report_absence:STUDENT_ID:{$today}:reason text|||proof description";
         $lines[] = "  To escalate concern: ACTION:log_incident:TYPE:description";
         $lines[] = "  Valid incident types: missing_child, medical_emergency, bullying, staff_complaint, general_concern";
         $lines[] = "  Use escalation (log_incident) for: missing child, bullying, medical emergency, staff complaint, or any message with 'I can\\'t find', 'hasn\\'t arrived', 'I am very worried'.";
         $lines[] = "  Only include one ACTION line per response. Do not include the ACTION line in the text you show the parent.";
+        $lines[] = '';
+        $lines[] = "ABSENCE REPORTING RULES (CRITICAL — follow these steps in order every time):";
+        $lines[] = "  1. When a parent says their child will be absent or is sick, do NOT record anything yet.";
+        $lines[] = "  2. First ask: what is the specific reason? (illness, family emergency, etc.) — do not accept vague answers.";
+        $lines[] = "  3. Then ask: what proof or evidence do they have? (e.g. doctor's note, medical certificate, appointment letter). They must describe it.";
+        $lines[] = "  4. Only after you have BOTH a clear reason AND a proof description, include the ACTION:report_absence line.";
+        $lines[] = "  5. Format: ACTION:report_absence:STUDENT_ID:{$today}:the reason text|||the proof description";
+        $lines[] = "  6. Never use 'unspecified', 'unknown', or empty text for reason or proof. If either is missing, ask again.";
         $lines[] = '';
 
         // Children

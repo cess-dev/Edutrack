@@ -507,5 +507,6 @@ $pageTitle = 'Analytics';
 </nav>
 
 <script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
+<?php include __DIR__ . '/../partials/lecturer_ai_widget.php'; ?>
 </body>
 </html>

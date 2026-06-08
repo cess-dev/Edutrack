@@ -44,6 +44,7 @@ $routes = [
     'admin/attendance'       => 'admin/attendance.php',
     'admin/disputes'         => 'admin/disputes.php',
     'admin/audit'            => 'admin/audit.php',
+    'admin/incidents'        => 'admin/incidents.php',
     'admin/settings'         => 'admin/settings.php',
     'admin/profile'          => 'admin/profile.php',
 
@@ -76,7 +77,8 @@ $routes = [
     'error/404'             => 'errors/404.php',
     'error/500'             => 'errors/500.php',
 
-    'api/auth/logout' => '../api/auth/logout.php',
+    'api/auth/logout'            => '../api/auth/logout.php',
+    'api/ai/lecturer_chat'       => '../api/ai/lecturer_chat.php',
 ];
 
 // ── Resolve current request to a clean route ───────────────────────────────

@@ -114,7 +114,7 @@ $pageTitle = 'Marks Management';
         <div class="card-header">
           <div class="card-title">Select Unit</div>
         </div>
-        <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+        <div class="unit-selector-list">
           <?php foreach ($units as $unit): ?>
             <a href="?unit_id=<?= $unit['id'] ?>"
                class="unit-selector-btn <?= $unit['id'] === $selectedUnitId ? 'active' : '' ?>">
@@ -126,7 +126,7 @@ $pageTitle = 'Marks Management';
       </div>
 
       <?php if (!$selectedUnit): ?>
-        <div class="empty-state">
+        <div class="empty-state animate-fade-in">
           <span class="empty-icon">📝</span>
           <p class="empty-title">Select a unit above to manage marks</p>
         </div>
@@ -139,7 +139,7 @@ $pageTitle = 'Marks Management';
           <div>
             <?= htmlspecialchars($selectedUnit['code']) ?> —
             <?= htmlspecialchars($selectedUnit['name']) ?>
-            <div class="text-sm text-muted font-mono" style="font-family:var(--font-body)">
+            <div class="text-sm text-muted font-mono">
               <?= htmlspecialchars($selectedUnit['course_name']) ?> ·
               <?= $academicYear ?> · Semester <?= $semester ?>
             </div>
@@ -223,7 +223,7 @@ $pageTitle = 'Marks Management';
                         <?= $a['is_published'] ? '✅ Published' : '⬜ Draft' ?>
                       </button>
                     </td>
-                    <td style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+                    <td class="table-cell-actions">
                       <?php $examPending = !empty($a['assessment_date']) && $a['assessment_date'] > date('Y-m-d'); ?>
                       <?php if ($examPending): ?>
                         <button class="btn btn-sm btn-ghost" disabled
@@ -268,7 +268,7 @@ $pageTitle = 'Marks Management';
                 <?= count($markSheet['assessments']) ?> assessments
               </div>
             </div>
-            <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center">
+            <div class="card-actions">
               <a href="<?= BASE_URL ?>/lecturer/marksheet?unit_id=<?= $selectedUnitId ?>"
                  class="btn btn-outline btn-sm">
                 View all
@@ -288,9 +288,7 @@ $pageTitle = 'Marks Management';
                   <?php foreach ($markSheet['assessments'] as $a): ?>
                     <th title="Max: <?= $a['max_score'] ?> | Weight: <?= $a['weight_percent'] ?>%">
                       <?= htmlspecialchars($a['name']) ?>
-                      <div class="text-xs" style="font-weight:400;opacity:0.7">
-                        /<?= $a['max_score'] ?>
-                      </div>
+                      <div class="th-sub">/<?= $a['max_score'] ?></div>
                     </th>
                   <?php endforeach; ?>
                   <th>Total</th>
@@ -308,10 +306,8 @@ $pageTitle = 'Marks Management';
                         $score = $s['scores'][$a['id']] ?? null;
                         if ($score !== null) {
                           $pct = ($score / $a['max_score']) * 100;
-                          $col = $pct >= 50
-                            ? 'var(--color-success)'
-                            : 'var(--color-error)';
-                          echo "<span style='color:{$col}'>{$score}</span>";
+                          $cls = $pct >= 50 ? 'score-pass' : 'score-fail';
+                          echo "<span class='{$cls}'>{$score}</span>";
                         } else {
                           echo '<span class="text-muted">—</span>';
                         }
@@ -352,8 +348,7 @@ $pageTitle = 'Marks Management';
       <button class="modal-close" onclick="closeCreateModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div data-error-container class="alert alert-error"
-           style="margin-bottom:var(--space-4)"></div>
+      <div data-error-container class="alert alert-error"></div>
 
       <div class="form-row">
         <div class="form-group">
@@ -428,11 +423,10 @@ $pageTitle = 'Marks Management';
         <span class="alert-icon">📝</span>
         <span id="upload-context-text"></span>
       </div>
-      <div data-error-container class="alert alert-error"
-           style="margin-bottom:var(--space-4)"></div>
+      <div data-error-container class="alert alert-error"></div>
 
       <!-- Upload mode tabs -->
-      <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-5)">
+      <div class="upload-tabs">
         <button class="btn btn-primary btn-sm" id="tab-single"
                 onclick="switchUploadTab('single')">
           Single Student
@@ -450,21 +444,11 @@ $pageTitle = 'Marks Management';
             Student <span class="required">*</span>
           </label>
           <input type="text" id="student-search" class="form-control"
-                 placeholder="Search by reg number or name..." 
-                 autocomplete="off"
-                 style="margin-bottom:var(--space-2)">
-          
+                 placeholder="Search by reg number or name..."
+                 autocomplete="off">
+
           <!-- Live search results -->
-          <div id="search-results" 
-               style="display:none;
-                      background:white;
-                      border:1px solid var(--color-border);
-                      border-radius:var(--radius-md);
-                      max-height:200px;
-                      overflow-y:auto;
-                      margin-bottom:var(--space-2);
-                      box-shadow:0 4px 6px rgba(0,0,0,0.1)">
-          </div>
+          <div id="search-results" class="search-results" style="display:none"></div>
 
           <select id="single-student" class="form-control">
             <option value="">— Or select from list below —</option>
@@ -500,8 +484,7 @@ $pageTitle = 'Marks Management';
           <span class="upload-icon">📂</span>
           <div class="font-medium text-sm">Click to choose CSV file</div>
           <div class="upload-hint">or drag and drop here</div>
-          <div id="file-name" class="text-xs text-accent"
-               style="margin-top:var(--space-2)"></div>
+          <div id="file-name" class="upload-file-name"></div>
         </div>
         <input type="file" id="csv-file" accept=".csv,text/csv"
                style="display:none" onchange="onFileSelect(this)">
@@ -785,23 +768,20 @@ function showSearchResults(query) {
   });
 
   if (filtered.length === 0) {
-    resultsContainer.innerHTML = '<div style="padding:var(--space-3);text-align:center;color:var(--color-text-muted);font-size:var(--text-sm)">No students found</div>';
+    resultsContainer.innerHTML = '<div class="search-result-empty">No students found</div>';
     resultsContainer.style.display = 'block';
     return;
   }
 
   // Render results
   const html = filtered.map(s =>
-    `<div class="search-result-item" onclick="selectStudentFromSearch(${s.id}, '${escHtml(s.reg)}', '${escHtml(s.name)}')"
-          style="padding:var(--space-3);cursor:pointer;border-bottom:1px solid var(--color-border-light);
-                  transition:background var(--transition-fast);display:flex;justify-content:space-between;align-items:center"
-          onmouseover="this.style.background='var(--color-accent-light)'"
-          onmouseout="this.style.background='white'">
+    `<div class="search-result-item"
+          onclick="selectStudentFromSearch(${s.id}, '${escHtml(s.reg)}', '${escHtml(s.name)}')">
       <div>
         <div class="font-mono text-sm font-medium">${escHtml(s.reg)}</div>
         <div class="text-sm text-muted">${escHtml(s.name)}</div>
       </div>
-      <span style="color:var(--color-accent);font-size:var(--text-xs)">Select →</span>
+      <span class="search-result-arrow">Select →</span>
     </div>`
   ).join('');
 
@@ -980,31 +960,6 @@ function escHtml(str) {
 }
 </script>
 
-<style>
-.unit-selector-btn {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3) var(--space-4);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: white;
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--color-text);
-  transition: border-color var(--transition-fast),
-              background var(--transition-fast);
-}
-.unit-selector-btn:hover {
-  border-color: var(--color-accent);
-  text-decoration: none;
-  color: var(--color-text);
-}
-.unit-selector-btn.active {
-  border-color: var(--color-accent);
-  background: var(--color-accent-light);
-}
-</style>
-
+<?php include __DIR__ . '/../partials/lecturer_ai_widget.php'; ?>
 </body>
 </html>

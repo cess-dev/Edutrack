@@ -260,6 +260,7 @@ $enrolledUnits = DB::rows(
 
 <script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
 <script src="<?= BASE_URL ?>/public/assets/js/qr-scanner.js"></script>
+<?php include __DIR__ . '/../partials/ai_chat_widget.php'; ?>
 <script>
 const BASE_URL = <?= json_encode(BASE_URL) ?>;
 

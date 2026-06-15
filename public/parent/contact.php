@@ -232,6 +232,7 @@ async function sendMessage() {
   }
 }
 </script>
+<?php include __DIR__ . '/../partials/parent_ai_widget.php'; ?>
 
 <style>
 /* ── Compose card ─────────────────────────────────────────────────────────── */

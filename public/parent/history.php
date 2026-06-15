@@ -365,6 +365,7 @@ $pageTitle = htmlspecialchars($child['full_name']) . ' — Semester History';
 </div><!-- /layout -->
 
 <script src="<?= BASE_URL ?>/public/assets/js/ajax.js"></script>
+<?php include __DIR__ . '/../partials/parent_ai_widget.php'; ?>
 <script>
 function toggleUnit(id) {
   const body    = document.getElementById('body-' + id);

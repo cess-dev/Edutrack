@@ -45,6 +45,8 @@ $routes = [
     'admin/disputes'         => 'admin/disputes.php',
     'admin/audit'            => 'admin/audit.php',
     'admin/incidents'        => 'admin/incidents.php',
+    'admin/messages'         => 'admin/messages.php',
+    'admin/autoreplies'      => 'admin/autoreplies.php',
     'admin/settings'         => 'admin/settings.php',
     'admin/profile'          => 'admin/profile.php',
 
@@ -68,6 +70,7 @@ $routes = [
     'parent/attendance'      => 'parent/attendance.php',
     'parent/profile'         => 'parent/profile.php',
     'parent/history'         => 'parent/history.php',
+    'parent/contact'         => 'parent/contact.php',
 
     // Auth (shared across portals)
     'auth/forgot-password'  => 'auth/forgot_password.php',
@@ -79,6 +82,7 @@ $routes = [
 
     'api/auth/logout'            => '../api/auth/logout.php',
     'api/ai/lecturer_chat'       => '../api/ai/lecturer_chat.php',
+    'api/admin/rank_messages'    => '../api/admin/rank_messages.php',
 ];
 
 // ── Resolve current request to a clean route ───────────────────────────────

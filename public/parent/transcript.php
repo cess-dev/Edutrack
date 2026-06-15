@@ -47,6 +47,10 @@ $schoolName = DB::row(
     "SELECT setting_value FROM system_settings WHERE setting_key = 'school_name'"
 )['setting_value'] ?? SCHOOL_NAME;
 
+$pdfEnabled = (DB::row(
+    "SELECT setting_value FROM system_settings WHERE setting_key = 'pdf_downloads_enabled'"
+)['setting_value'] ?? '1') !== '0';
+
 $transcript = MarksModel::getStudentTranscript($child['id']);
 $csrfToken = Auth::csrfToken();
 $firstName = htmlspecialchars(explode(' ', $child['full_name'])[0]);
@@ -58,6 +62,7 @@ $pageTitle = "$firstName's Transcript";
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>">
+  <meta name="pdf-downloads" content="<?= $pdfEnabled ? '1' : '0' ?>">
   <title><?= htmlspecialchars($pageTitle) ?> — <?= htmlspecialchars(APP_NAME) ?></title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/parent.css">

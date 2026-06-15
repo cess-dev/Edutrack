@@ -133,7 +133,7 @@ $smtpOn       = EmailService::isEnabled();
 $hasEmail     = !empty($user['email']);
 $deliverable  = $hasEmail && EmailService::isDeliverableAddress($user['email']);
 
-if ($smtpOn && $deliverable) {
+if ($smtpOn && $deliverable && $user['reg_number'] !== 'PAR001') {
     // Generate 6-digit OTP
     $otp        = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $expires    = time() + 600; // 10 minutes

@@ -46,6 +46,14 @@ try {
 } catch (PDOException $e) {
     $_sidebarOpenIncidents = 0;
 }
+
+try {
+    $_sidebarUnreadMessages = (int)(DB::row(
+        "SELECT COUNT(*) AS cnt FROM parent_messages WHERE status = 'unread'"
+    )['cnt'] ?? 0);
+} catch (PDOException $e) {
+    $_sidebarUnreadMessages = 0;
+}
 ?>
 <aside class="sidebar">
   <div class="sidebar-brand">
@@ -130,6 +138,21 @@ try {
       <?php if ($_sidebarOpenIncidents > 0): ?>
         <span class="nav-badge"><?= $_sidebarOpenIncidents ?></span>
       <?php endif; ?>
+    </a>
+
+    <a href="<?= BASE_URL ?>/admin/messages"
+       class="nav-item <?= adminNavActive('messages', $currentPage) ?>">
+      <span class="nav-icon">✉</span>
+      <span>Messages</span>
+      <?php if ($_sidebarUnreadMessages > 0): ?>
+        <span class="nav-badge"><?= $_sidebarUnreadMessages ?></span>
+      <?php endif; ?>
+    </a>
+
+    <a href="<?= BASE_URL ?>/admin/autoreplies"
+       class="nav-item <?= adminNavActive('autoreplies', $currentPage) ?>">
+      <span class="nav-icon">↩</span>
+      <span>Autoreplies</span>
     </a>
 
     <div class="nav-section-label">System</div>

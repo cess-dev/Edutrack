@@ -380,6 +380,23 @@ $pageTitle = 'System Settings';
         </div>
 
         <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;
+                 gap:var(--space-3);cursor:pointer">
+            <input type="checkbox"
+                   id="pdf_downloads_enabled"
+                   style="width:18px;height:18px;cursor:pointer"
+                   <?= settingVal($settings,'pdf_downloads_enabled','1') === '1' ? 'checked' : '' ?>>
+            <span>Allow PDF Downloads</span>
+          </label>
+          <div class="form-hint" style="margin-left:26px">
+            When OFF, all PDF download buttons across every portal show a notice
+            instead of downloading. Use this at end of semester or during result
+            processing. Students and parents are directed to contact the school
+            if their download is urgent.
+          </div>
+        </div>
+
+        <div class="form-group">
           <label class="form-label" for="rows_per_page">
             Rows Per Page
           </label>
@@ -399,7 +416,7 @@ $pageTitle = 'System Settings';
         <div class="form-actions" style="padding-top:var(--space-4)">
           <button class="btn btn-primary"
                   onclick="saveCheckboxesAndFields(
-                    ['maintenance_mode'],
+                    ['maintenance_mode','pdf_downloads_enabled'],
                     ['rows_per_page']
                   )">
             Save System Controls

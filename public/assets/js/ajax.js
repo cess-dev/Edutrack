@@ -569,4 +569,74 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   _initMobileSidebar();
+  _initPdfGuard();
 });
+
+// =============================================================================
+// PDF download guard — intercepts report links when downloads are disabled
+// =============================================================================
+function _initPdfGuard() {
+  const meta = document.querySelector('meta[name="pdf-downloads"]');
+  if (!meta || meta.content !== '0') return; // downloads enabled or meta absent
+
+  document.querySelectorAll('a[href*="/api/reports/"]').forEach(link => {
+    link.addEventListener('click', _onPdfClick);
+  });
+}
+
+function _onPdfClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const modalId = 'pdf-guard-modal';
+  if (document.getElementById(modalId)) return; // already open
+
+  const BASE = document.documentElement.dataset.baseUrl || '';
+
+  const backdrop = document.createElement('div');
+  backdrop.id = modalId;
+  Object.assign(backdrop.style, {
+    position:       'fixed',
+    inset:          '0',
+    background:     'rgba(14,42,66,0.55)',
+    backdropFilter: 'blur(2px)',
+    zIndex:         '99998',
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'center',
+    padding:        '16px',
+  });
+
+  backdrop.innerHTML = `
+    <div style="background:var(--color-bg-card,#fff);border-radius:var(--radius-xl,12px);
+                box-shadow:0 20px 60px rgba(0,0,0,0.2);width:100%;max-width:460px;
+                padding:var(--space-8,32px);font-family:var(--font-body,sans-serif)">
+      <h3 style="font-size:var(--text-base,15px);font-weight:var(--weight-semibold,600);
+                 color:var(--color-primary,#0E2A42);margin:0 0 var(--space-3,12px)">
+        Downloads Unavailable
+      </h3>
+      <p style="font-size:var(--text-sm,14px);color:var(--color-text,#1a2e3b);
+                line-height:var(--leading-relaxed,1.65);margin:0 0 var(--space-3,12px)">
+        PDF downloads have been temporarily disabled by the school administration.
+        This is usually done at the end of semester while results are being processed.
+      </p>
+      <p style="font-size:var(--text-sm,14px);color:var(--color-text,#1a2e3b);
+                line-height:var(--leading-relaxed,1.65);margin:0 0 var(--space-6,24px)">
+        If this is urgent, please contact the school administration directly.
+      </p>
+      <div style="display:flex;justify-content:flex-end;gap:var(--space-3,12px);flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm"
+                onclick="document.getElementById('${modalId}').remove()">
+          Close
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', ev => {
+    if (ev.target === backdrop) backdrop.remove();
+  });
+  document.addEventListener('keydown', function esc(ev) {
+    if (ev.key === 'Escape') { backdrop.remove(); document.removeEventListener('keydown', esc); }
+  });
+}

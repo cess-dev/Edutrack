@@ -56,6 +56,7 @@ $allowedKeys = [
     'smtp_enabled',
     'allow_student_register',
     'maintenance_mode',
+    'pdf_downloads_enabled',
 ];
 
 // ── Validate all incoming keys before touching the DB ─────────────────────────
@@ -126,6 +127,7 @@ foreach ($incoming as $item) {
         case 'smtp_enabled':
         case 'allow_student_register':
         case 'maintenance_mode':
+        case 'pdf_downloads_enabled':
             $value = in_array($value, ['1', 'true', 'on'], true) ? '1' : '0';
             break;
 

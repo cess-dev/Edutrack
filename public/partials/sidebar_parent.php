@@ -100,6 +100,14 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
       <span>Semester History</span>
     </a>
 
+    <div class="nav-section-label">Support</div>
+
+    <a href="<?= BASE_URL ?>/parent/contact"
+       class="nav-item <?= parentNavActive('contact.php', $currentPage) ?>">
+      <span class="nav-icon">✉</span>
+      <span>Contact School</span>
+    </a>
+
     <div class="nav-section-label">Account</div>
 
     <a href="<?= BASE_URL ?>/parent/profile"

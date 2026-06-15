@@ -31,6 +31,8 @@ $threshold = (int)(DB::row(
     "SELECT setting_value FROM system_settings WHERE setting_key = 'attendance_threshold'"
 )['setting_value'] ?? ATTENDANCE_ALERT_THRESHOLD);
 
+$pdfEnabled = true; // Admins can always download regardless of the setting
+
 // All active units for report generation
 $units = DB::rows(
     "SELECT u.id, u.code, u.name, lec.full_name AS lecturer_name,
@@ -66,6 +68,7 @@ $pageTitle = 'Reports';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>">
+  <meta name="pdf-downloads" content="<?= $pdfEnabled ? '1' : '0' ?>">
   <title><?= htmlspecialchars($pageTitle) ?> — <?= htmlspecialchars(APP_NAME) ?></title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/admin.css">

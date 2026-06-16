@@ -61,6 +61,7 @@ $routes = [
     'lecturer/disputes'      => 'lecturer/disputes.php',
     'lecturer/analytics'     => 'lecturer/analytics.php',
     'lecturer/profile'       => 'lecturer/profile.php',
+    'lecturer/timetable'     => 'lecturer/timetable.php',
 
     // Parent
     'parent/login'           => 'parent/login.php',
@@ -71,6 +72,7 @@ $routes = [
     'parent/profile'         => 'parent/profile.php',
     'parent/history'         => 'parent/history.php',
     'parent/contact'         => 'parent/contact.php',
+    'parent/timetable'       => 'parent/timetable.php',
 
     // Auth (shared across portals)
     'auth/forgot-password'  => 'auth/forgot_password.php',
@@ -80,9 +82,13 @@ $routes = [
     'error/404'             => 'errors/404.php',
     'error/500'             => 'errors/500.php',
 
-    'api/auth/logout'            => '../api/auth/logout.php',
-    'api/ai/lecturer_chat'       => '../api/ai/lecturer_chat.php',
-    'api/admin/rank_messages'    => '../api/admin/rank_messages.php',
+    'api/auth/logout'              => '../api/auth/logout.php',
+    'api/ai/lecturer_chat'        => '../api/ai/lecturer_chat.php',
+    'api/admin/rank_messages'     => '../api/admin/rank_messages.php',
+    'api/timetable/upload'        => '../api/timetable/upload.php',
+    'api/timetable/save'          => '../api/timetable/save.php',
+    'api/timetable/list'          => '../api/timetable/list.php',
+    'api/timetable/preferences'   => '../api/timetable/preferences.php',
 ];
 
 // ── Resolve current request to a clean route ───────────────────────────────

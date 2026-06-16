@@ -94,6 +94,14 @@ $pendingDisputes = (int)(DB::row(
       <span>Mark Sheet</span>
     </a>
 
+    <div class="nav-section-label">Schedule</div>
+
+    <a href="<?= BASE_URL ?>/lecturer/timetable"
+       class="nav-item <?= navActive('timetable.php', $currentPage) ?>">
+      <span class="nav-icon">📅</span>
+      <span>Timetable</span>
+    </a>
+
     <div class="nav-section-label">Reports</div>
 
     <a href="<?= BASE_URL ?>/lecturer/analytics"

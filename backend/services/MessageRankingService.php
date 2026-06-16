@@ -344,7 +344,7 @@ class MessageRankingService
             CURLOPT_POSTFIELDS     => json_encode($payload),
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
-                'Authorization: Bearer lm-studio',
+                'Authorization: Bearer ' . LM_STUDIO_API_KEY,
             ],
             CURLOPT_TIMEOUT        => 90,
             CURLOPT_SSL_VERIFYPEER => false,

@@ -82,6 +82,12 @@ $firstChildId = !empty($children) ? $children[0]['id'] : '';
 
     <div class="nav-section-label">Academics</div>
 
+    <a href="<?= BASE_URL ?>/parent/timetable<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
+       class="nav-item <?= parentNavActive('timetable.php', $currentPage) ?>">
+      <span class="nav-icon">📅</span>
+      <span>Class Schedule</span>
+    </a>
+
     <a href="<?= BASE_URL ?>/parent/marks<?= $firstChildId ? "?student_id={$firstChildId}" : '' ?>"
        class="nav-item <?= parentNavActive('marks.php', $currentPage) ?>">
       <span class="nav-icon">📝</span>

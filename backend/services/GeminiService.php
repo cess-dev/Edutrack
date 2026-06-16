@@ -18,7 +18,9 @@ class GeminiService
 {
     public static function isEnabled(): bool
     {
-        return defined('AI_ENABLED') && AI_ENABLED === true;
+        return defined('AI_ENABLED') && AI_ENABLED === true
+            && defined('LM_STUDIO_URL')   && LM_STUDIO_URL   !== ''
+            && defined('LM_STUDIO_MODEL') && LM_STUDIO_MODEL !== '';
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -327,7 +329,7 @@ class GeminiService
             CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
-                'Authorization: Bearer lm-studio',
+                'Authorization: Bearer ' . LM_STUDIO_API_KEY,
                 'Accept: application/json',
             ],
             CURLOPT_TIMEOUT        => 120,

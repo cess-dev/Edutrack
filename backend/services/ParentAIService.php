@@ -29,8 +29,10 @@ class ParentAIService
         string $message,
         array  $history = []
     ): array {
-        if (!defined('AI_ENABLED') || !AI_ENABLED) {
-            return ['success' => false, 'error' => 'AI assistant is not enabled.'];
+        if (!defined('AI_ENABLED') || !AI_ENABLED
+            || !defined('LM_STUDIO_URL')   || LM_STUDIO_URL   === ''
+            || !defined('LM_STUDIO_MODEL') || LM_STUDIO_MODEL === '') {
+            return ['success' => false, 'error' => 'AI assistant is not configured. Set LM_STUDIO_URL and LM_STUDIO_MODEL in .env.'];
         }
 
         $system   = self::buildSystemPrompt($parentId);
@@ -418,7 +420,7 @@ class ParentAIService
             CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
-                'Authorization: Bearer lm-studio',
+                'Authorization: Bearer ' . LM_STUDIO_API_KEY,
                 'Accept: application/json',
             ],
             CURLOPT_TIMEOUT        => 120,

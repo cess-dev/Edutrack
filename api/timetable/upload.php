@@ -22,6 +22,9 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
 require_once __DIR__ . '/../../backend/services/TimetableVisionService.php';
 
+set_time_limit(300);
+ini_set('display_errors', 0);
+
 Auth::startSession();
 Auth::requireRole('lecturer');
 
@@ -108,12 +111,11 @@ if ($mimeType === 'application/pdf') {
 $academicYear = DB::row("SELECT setting_value FROM system_settings WHERE setting_key = 'academic_year'")['setting_value'] ?? ACADEMIC_YEAR;
 $semester     = (int)(DB::row("SELECT setting_value FROM system_settings WHERE setting_key = 'active_semester'")['setting_value'] ?? ACTIVE_SEMESTER);
 
-DB::execute(
+$timetableId = (int)DB::insert(
     "INSERT INTO timetables (lecturer_id, academic_year, semester, file_path, original_filename, file_type, extraction_status)
      VALUES (?, ?, ?, ?, ?, ?, 'pending')",
     [$user['id'], $academicYear, $semester, $destPath, $origName, $fileTypeLabel]
 );
-$timetableId = (int)DB::lastInsertId();
 
 // ── Run extraction ────────────────────────────────────────────────────────────
 
@@ -128,6 +130,59 @@ if (!$result['success']) {
 }
 
 $slots = $result['slots'];
+
+// ── Merge consecutive slots for the same unit/day/room ───────────────────────
+// e.g. BIT101 8:00-9:00 + BIT101 9:00-10:00 → BIT101 8:00-10:00
+
+usort($slots, fn($a, $b) =>
+    $a['day_of_week'] <=> $b['day_of_week']
+    ?: strcmp($a['unit_code'], $b['unit_code'])
+    ?: strcmp($a['start_time'], $b['start_time'])
+);
+
+$merged = [];
+foreach ($slots as $slot) {
+    $last = end($merged);
+    if ($last !== false
+        && $last['day_of_week'] === $slot['day_of_week']
+        && $last['unit_code']   === $slot['unit_code']
+        && $last['room']        === $slot['room']
+        && $last['end_time']    === $slot['start_time']
+    ) {
+        $merged[array_key_last($merged)]['end_time'] = $slot['end_time'];
+    } else {
+        $merged[] = $slot;
+    }
+}
+$slots = $merged;
+
+// Re-sort by day then start time for the review table
+usort($slots, fn($a, $b) =>
+    $a['day_of_week'] <=> $b['day_of_week']
+    ?: strcmp($a['start_time'], $b['start_time'])
+);
+
+// ── Auto-fill unit names from the system (own units first, then all) ─────────
+
+$allUnits = DB::rows(
+    "SELECT code, name, lecturer_id FROM units WHERE is_active = 1 ORDER BY lecturer_id = ? DESC",
+    [$user['id']]
+);
+$unitNameMap = [];
+foreach ($allUnits as $u) {
+    $key = strtoupper(trim($u['code']));
+    if (!isset($unitNameMap[$key])) {
+        $unitNameMap[$key] = $u['name'];
+    }
+}
+
+foreach ($slots as &$slot) {
+    $code = strtoupper($slot['unit_code']);
+    if (empty($slot['unit_name']) && isset($unitNameMap[$code])) {
+        $slot['unit_name'] = $unitNameMap[$code];
+    }
+}
+unset($slot);
 
 // ── Persist raw extraction ────────────────────────────────────────────────────
 

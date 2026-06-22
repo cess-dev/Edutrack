@@ -23,6 +23,12 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
 require_once __DIR__ . '/../../backend/services/LecturerAIService.php';
 
+// AI inference can take 60s+ on slow hardware; prevent PHP from killing the
+// script before curl finishes. Suppress HTML error output so the response is
+// always valid JSON (display_errors outputs <br> tags that break res.json()).
+set_time_limit(180);
+ini_set('display_errors', 0);
+
 Auth::startSession();
 header('Content-Type: application/json; charset=utf-8');
 Auth::requireRole('lecturer', true);
@@ -54,7 +60,15 @@ foreach ($rawHistory as $turn) {
 }
 
 $lecturerId = Auth::id();
-$result     = LecturerAIService::chat($lecturerId, $message, $history);
+
+try {
+    $result = LecturerAIService::chat($lecturerId, $message, $history);
+} catch (Throwable $e) {
+    error_log('[LecturerChat] Exception: ' . $e->getMessage());
+    http_response_code(503);
+    echo json_encode(['success' => false, 'message' => 'AI service error: ' . $e->getMessage()]);
+    exit;
+}
 
 if (!$result['success']) {
     http_response_code(503);

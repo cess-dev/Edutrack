@@ -105,12 +105,19 @@ foreach ($allUnits as $u) {
 }
 
 // ── Replace existing confirmed schedules for this timetable ──────────────────
+// Only save units that belong to this lecturer to prevent wrong attribution.
 
 DB::execute("DELETE FROM class_schedules WHERE timetable_id = ?", [$ttId]);
 
-$saved = 0;
+$saved   = 0;
+$skipped = [];
 foreach ($valid as $slot) {
     $unitId = $unitMap[$slot['unit_code']] ?? null;
+
+    if ($unitId === null) {
+        $skipped[] = $slot['unit_code'];
+        continue;
+    }
 
     DB::execute(
         "INSERT INTO class_schedules
@@ -130,7 +137,36 @@ foreach ($valid as $slot) {
     $saved++;
 }
 
-// ── Mark timetable as confirmed ───────────────────────────────────────────────
+if ($saved === 0) {
+    $skippedUnique = array_values(array_unique($skipped));
+    http_response_code(422);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'None of the units in this timetable (' . implode(', ', $skippedUnique) . ') are assigned to you. '
+                   . 'Your assigned units are: ' . implode(', ', array_keys($unitMap)) . '. '
+                   . 'Please upload a timetable containing your own units.',
+    ]);
+    exit;
+}
+
+// ── Replace any previously confirmed timetable for this lecturer/semester ─────
+
+DB::execute(
+    "UPDATE timetables SET extraction_status = 'replaced'
+     WHERE lecturer_id = ? AND academic_year = ? AND semester = ?
+       AND extraction_status = 'confirmed' AND id != ?",
+    [$user['id'], $tt['academic_year'], $tt['semester'], $ttId]
+);
+
+// Clean up orphaned schedules from replaced timetables
+DB::execute(
+    "DELETE cs FROM class_schedules cs
+     JOIN timetables t ON t.id = cs.timetable_id
+     WHERE t.lecturer_id = ? AND t.extraction_status = 'replaced'",
+    [$user['id']]
+);
+
+// ── Mark this timetable as confirmed ─────────────────────────────────────────
 
 DB::execute(
     "UPDATE timetables SET extraction_status = 'confirmed', confirmed_at = NOW() WHERE id = ?",
@@ -188,4 +224,10 @@ if ($prefs && $prefs['email_enabled']) {
     }
 }
 
-echo json_encode(['success' => true, 'saved' => $saved]);
+$response = ['success' => true, 'saved' => $saved];
+if (!empty($skipped)) {
+    $skippedUnique = array_values(array_unique($skipped));
+    $response['skipped'] = $skippedUnique;
+    $response['skipped_message'] = count($skippedUnique) . ' unit(s) not assigned to you were skipped: ' . implode(', ', $skippedUnique);
+}
+echo json_encode($response);

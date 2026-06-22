@@ -76,6 +76,12 @@ $studentPendingDisputes = (int)(DB::row(
 
     <div class="nav-section-label">Academics</div>
 
+    <a href="<?= BASE_URL ?>/student/timetable"
+       class="nav-item <?= studentNavActive('timetable.php', $currentPage) ?>">
+      <span class="nav-icon">📅</span>
+      <span>Class Schedule</span>
+    </a>
+
     <a href="<?= BASE_URL ?>/student/marks"
        class="nav-item <?= studentNavActive('marks.php', $currentPage) ?>">
       <span class="nav-icon">📝</span>

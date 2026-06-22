@@ -62,7 +62,6 @@ const AiChat = (() => {
     btn.setAttribute('aria-expanded', 'true');
     btn.innerHTML = closeSvg();
     requestAnimationFrame(() => panel.classList.add('ai-open'));
-    if (history.length === 0) chips.hidden = false;
     setTimeout(() => input.focus(), 200);
   }
 

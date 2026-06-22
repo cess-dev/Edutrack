@@ -37,25 +37,29 @@ class TimetableVisionService
      */
     public static function extract(string $filePath, string $mimeType): array
     {
-        if (!self::isEnabled()) {
-            return ['success' => false, 'error' => 'Vision extraction is not enabled.'];
-        }
-
         if (!file_exists($filePath)) {
             return ['success' => false, 'error' => 'Uploaded file not found.'];
         }
 
+        // CSV: parsed directly, no AI needed
+        if (in_array($mimeType, ['text/csv', 'text/plain', 'application/vnd.ms-excel'], true)) {
+            return self::extractFromCsv($filePath);
+        }
+
+        // PDF: extract text and send to the regular text model — no vision needed
         if ($mimeType === 'application/pdf') {
+            if (!defined('LM_STUDIO_URL') || LM_STUDIO_URL === '' || !defined('LM_STUDIO_MODEL') || LM_STUDIO_MODEL === '') {
+                return ['success' => false, 'error' => 'AI is not configured. Set LM_STUDIO_URL and LM_STUDIO_MODEL in .env.'];
+            }
             return self::extractFromPdf($filePath);
         }
 
-        // Image types: send directly to vision model
+        // Image types: require a vision-capable model
         if (in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true)) {
+            if (!self::isEnabled()) {
+                return ['success' => false, 'error' => 'Image extraction requires a vision model (e.g. qwen2-vl-7b-instruct). Set VISION_MODEL_NAME in .env to a multimodal model, or upload a PDF/CSV instead.'];
+            }
             return self::extractFromImage($filePath, $mimeType);
-        }
-
-        if (in_array($mimeType, ['text/csv', 'text/plain', 'application/vnd.ms-excel'], true)) {
-            return self::extractFromCsv($filePath);
         }
 
         return ['success' => false, 'error' => 'Unsupported file type for extraction.'];
@@ -103,35 +107,202 @@ class TimetableVisionService
 
     private static function extractFromPdf(string $filePath): array
     {
-        // Try pdftotext (requires poppler-utils installed on the system)
+        // Try pdftotext first (requires poppler-utils)
         $text = self::pdfToText($filePath);
+
+        // Fallback: extract text directly from PDF stream (works on Windows without external tools)
+        if ($text === null || strlen(trim($text)) <= 30) {
+            $text = self::phpPdfExtract($filePath);
+        }
 
         if ($text !== null && strlen(trim($text)) > 30) {
             return self::extractFromText($text);
         }
 
-        // No text layer found — inform user
         return [
             'success' => false,
-            'error'   => 'This PDF appears to be a scanned image. Please convert it to JPG/PNG and re-upload, or use a text-based PDF.',
+            'error'   => 'Could not extract text from this PDF. It may be a scanned image. Please upload a text-based PDF or a CSV file instead.',
         ];
     }
 
     private static function pdfToText(string $filePath): ?string
     {
-        // pdftotext is part of poppler-utils; available on most Linux servers
-        // and can be installed on Windows (https://poppler.freedesktop.org)
         $escaped = escapeshellarg($filePath);
         $output  = [];
         $code    = 0;
 
-        exec("pdftotext -layout {$escaped} - 2>/dev/null", $output, $code);
+        @exec("pdftotext -layout {$escaped} - 2>/dev/null", $output, $code);
 
         if ($code !== 0 || empty($output)) {
             return null;
         }
 
         return implode("\n", $output);
+    }
+
+    private static function phpPdfExtract(string $filePath): ?string
+    {
+        $raw = file_get_contents($filePath);
+        if ($raw === false) return null;
+
+        // Step 1: find and decode all streams (handles FlateDecode, ASCII85Decode, or both)
+        $decoded = [];
+
+        // Collect stream dictionaries + data
+        $offset = 0;
+        while (($sPos = strpos($raw, 'stream', $offset)) !== false) {
+            $ePos = strpos($raw, 'endstream', $sPos);
+            if ($ePos === false) break;
+
+            // Skip past "stream\r\n" or "stream\n"
+            $dataStart = $sPos + 6;
+            if (isset($raw[$dataStart]) && $raw[$dataStart] === "\r") $dataStart++;
+            if (isset($raw[$dataStart]) && $raw[$dataStart] === "\n") $dataStart++;
+
+            $data = substr($raw, $dataStart, $ePos - $dataStart);
+            // Trim trailing whitespace before endstream
+            $data = rtrim($data, "\r\n");
+
+            // Look back for the Filter in the object dictionary
+            $dictChunk = substr($raw, max(0, $sPos - 300), 300);
+            $hasAscii85  = (bool)preg_match('/ASCII85Decode/', $dictChunk);
+            $hasFlate    = (bool)preg_match('/FlateDecode/', $dictChunk);
+
+            if ($hasAscii85) {
+                $data = self::ascii85Decode($data);
+                if ($data === null) { $offset = $ePos + 9; continue; }
+            }
+
+            if ($hasFlate) {
+                $d = @gzuncompress($data);
+                if ($d === false) $d = @gzinflate($data);
+                if ($d !== false) $data = $d; else { $offset = $ePos + 9; continue; }
+            }
+
+            if (!$hasAscii85 && !$hasFlate) {
+                // Uncompressed — only keep if it looks like text content
+                if (strpos($data, 'BT') === false && strpos($data, 'begincmap') === false) {
+                    $offset = $ePos + 9;
+                    continue;
+                }
+            }
+
+            $decoded[] = $data;
+            $offset = $ePos + 9;
+        }
+
+        // Also try the old regex approach as fallback
+        if (empty($decoded) && preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $raw, $sm)) {
+            foreach ($sm[1] as $s) {
+                $d = @gzuncompress($s);
+                if ($d === false) $d = @gzinflate($s);
+                if ($d !== false) $decoded[] = $d;
+            }
+        }
+
+        // Step 2: build CMap (hex code → unicode char) from all CMap streams
+        $cmap = [];
+        foreach ($decoded as $d) {
+            if (strpos($d, 'begincmap') === false) continue;
+
+            // beginbfchar entries: <src> <dst>
+            if (preg_match_all('/beginbfchar\s*(.*?)\s*endbfchar/s', $d, $bfc)) {
+                foreach ($bfc[1] as $block) {
+                    if (preg_match_all('/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/', $block, $pairs)) {
+                        foreach ($pairs[1] as $i => $src) {
+                            $dst = $pairs[2][$i];
+                            $cmap[strtoupper($src)] = mb_chr((int)hexdec($dst), 'UTF-8');
+                        }
+                    }
+                }
+            }
+
+            // beginbfrange entries: <start> <end> <dstStart>
+            if (preg_match_all('/beginbfrange\s*(.*?)\s*endbfrange/s', $d, $bfr)) {
+                foreach ($bfr[1] as $block) {
+                    if (preg_match_all('/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/', $block, $ranges)) {
+                        foreach ($ranges[1] as $i => $startHex) {
+                            $start  = (int)hexdec($startHex);
+                            $end    = (int)hexdec($ranges[2][$i]);
+                            $dstVal = (int)hexdec($ranges[3][$i]);
+                            for ($c = $start; $c <= $end; $c++) {
+                                $cmap[strtoupper(str_pad(dechex($c), strlen($startHex), '0', STR_PAD_LEFT))] = mb_chr($dstVal + ($c - $start), 'UTF-8');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Step 3: extract text from content streams (BT..ET blocks)
+        $lines = [];
+        $lastY = null;
+
+        foreach ($decoded as $d) {
+            if (strpos($d, 'BT') === false) continue;
+
+            if (!preg_match_all('/\bBT\b\s*(.*?)\s*\bET\b/s', $d, $btm)) continue;
+
+            foreach ($btm[1] as $block) {
+                $lineText = '';
+
+                // Track Y position from Tm operator for line breaks
+                if (preg_match_all('/[0-9.\-]+ [0-9.\-]+ [0-9.\-]+ [0-9.\-]+ [0-9.\-]+ ([0-9.\-]+) Tm/', $block, $tmm)) {
+                    $y = (float)end($tmm[1]);
+                    if ($lastY !== null && abs($y - $lastY) > 2) {
+                        if (!empty($lines) || $lineText !== '') {
+                            $lines[] = $lineText;
+                            $lineText = '';
+                        }
+                    }
+                    $lastY = $y;
+                }
+
+                // Decode <hex> Tj sequences
+                if (preg_match_all('/<([0-9A-Fa-f]+)>\s*Tj/', $block, $tjm)) {
+                    foreach ($tjm[1] as $hex) {
+                        $chars = str_split(strtoupper($hex), 4);
+                        foreach ($chars as $ch) {
+                            $lineText .= $cmap[$ch] ?? '';
+                        }
+                    }
+                }
+
+                // Decode TJ arrays: [<hex> num <hex> num ...] TJ
+                if (preg_match_all('/\[(.*?)\]\s*TJ/s', $block, $tja)) {
+                    foreach ($tja[1] as $arr) {
+                        if (preg_match_all('/<([0-9A-Fa-f]+)>/', $arr, $hexm)) {
+                            foreach ($hexm[1] as $hex) {
+                                $chars = str_split(strtoupper($hex), 4);
+                                foreach ($chars as $ch) {
+                                    $lineText .= $cmap[$ch] ?? '';
+                                }
+                            }
+                        }
+                        // Also handle parenthesized strings in TJ arrays
+                        if (preg_match_all('/\(([^)]*)\)/', $arr, $paren)) {
+                            foreach ($paren[1] as $p) {
+                                $lineText .= $p;
+                            }
+                        }
+                    }
+                }
+
+                // Decode plain (text) Tj for simple PDFs
+                if (preg_match_all('/\(([^)]*)\)\s*Tj/', $block, $ptj)) {
+                    foreach ($ptj[1] as $p) {
+                        $lineText .= $p;
+                    }
+                }
+
+                if ($lineText !== '') {
+                    $lines[] = $lineText;
+                }
+            }
+        }
+
+        $text = trim(implode("\n", $lines));
+        return $text !== '' ? $text : null;
     }
 
     // ── Text-based extraction (for PDF text or plain text fallback) ───────────
@@ -340,5 +511,48 @@ PROMPT;
         }
 
         return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'body' => $body];
+    }
+
+    private static function ascii85Decode(string $data): ?string
+    {
+        // Strip whitespace and the <~ / ~> delimiters
+        $data = trim($data);
+        if (str_starts_with($data, '<~')) $data = substr($data, 2);
+        if (str_ends_with($data, '~>'))   $data = substr($data, 0, -2);
+        $data = preg_replace('/\s+/', '', $data);
+
+        $result = '';
+        $len = strlen($data);
+        $i = 0;
+
+        while ($i < $len) {
+            if ($data[$i] === 'z') {
+                $result .= "\0\0\0\0";
+                $i++;
+                continue;
+            }
+
+            $chunk = '';
+            $pad = 0;
+            for ($j = 0; $j < 5; $j++) {
+                if ($i + $j < $len) {
+                    $chunk .= $data[$i + $j];
+                } else {
+                    $chunk .= 'u'; // pad with 'u' (max value)
+                    $pad++;
+                }
+            }
+
+            $val = 0;
+            for ($j = 0; $j < 5; $j++) {
+                $val = $val * 85 + (ord($chunk[$j]) - 33);
+            }
+
+            $bytes = pack('N', $val);
+            $result .= substr($bytes, 0, 4 - $pad);
+            $i += 5 - $pad;
+        }
+
+        return $result !== '' ? $result : null;
     }
 }

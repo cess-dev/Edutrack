@@ -102,7 +102,7 @@ class Auth
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('X-XSS-Protection: 1; mode=block');
         header('Permissions-Policy: camera=(self), microphone=(), geolocation=(self), fullscreen=(self)');
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
 
         if (self::isHttps()) {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');

@@ -88,6 +88,27 @@ CREATE TABLE IF NOT EXISTS `notification_preferences` (
 
 
 -- =============================================================================
+-- TABLE: student_notification_preferences
+-- One row per student. Controls whether and how far ahead to email them.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS `student_notification_preferences` (
+    `student_id`            INT UNSIGNED    NOT NULL,
+    `email_enabled`         TINYINT(1)      NOT NULL DEFAULT 0,
+    `notify_before_minutes` INT             NOT NULL DEFAULT 30
+                            COMMENT 'Send email this many minutes before class',
+    `updated_at`            TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+                            ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`student_id`),
+
+    CONSTRAINT `fk_snp_student`
+        FOREIGN KEY (`student_id`) REFERENCES `users`(`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Per-student email notification settings for class reminders';
+
+
+-- =============================================================================
 -- TABLE: notification_log
 -- Tracks which reminders were sent to prevent duplicates when the cron runs.
 -- =============================================================================

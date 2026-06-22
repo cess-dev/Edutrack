@@ -48,6 +48,8 @@ $lecturerEmail = $user['email'] ?? '';
 
 $days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+$csrfToken = Auth::csrfToken();
+
 // Group schedule by day for the weekly grid
 $byDay = [];
 foreach ($confirmedSchedule as $slot) {
@@ -55,10 +57,11 @@ foreach ($confirmedSchedule as $slot) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-base-url="<?= htmlspecialchars(BASE_URL) ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>">
   <title>Timetable — <?= htmlspecialchars(APP_NAME) ?></title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/lecturer.css">
@@ -213,11 +216,15 @@ foreach ($confirmedSchedule as $slot) {
 <div class="layout">
   <?php require_once __DIR__ . '/../partials/sidebar_lecturer.php'; ?>
 
-  <main class="main-content">
-    <div class="page-header">
-      <h1 class="page-title">Timetable</h1>
-      <p class="page-subtitle">Upload your class schedule and get email reminders before each class</p>
-    </div>
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar-title">Timetable</span>
+      <div class="topbar-actions">
+        <span class="text-sm text-muted">Upload your class schedule and get email reminders</span>
+      </div>
+    </header>
+
+    <div class="page-content">
 
     <!-- ── Notification preferences ──────────────────────────────────────── -->
     <?php if ($confirmedTimetable): ?>
@@ -327,7 +334,7 @@ foreach ($confirmedSchedule as $slot) {
               <div class="no-classes">No classes</div>
             <?php endif; ?>
           </div>
-          <?php endfor; ?>
+          <?php endforeach; ?>
         </div>
         <?php endif; ?>
       </div>
@@ -429,7 +436,8 @@ foreach ($confirmedSchedule as $slot) {
       </div>
     </div>
 
-  </main>
+    </div><!-- /page-content -->
+  </div><!-- /main -->
 </div>
 
 <?php require_once __DIR__ . '/../partials/lecturer_ai_widget.php'; ?>

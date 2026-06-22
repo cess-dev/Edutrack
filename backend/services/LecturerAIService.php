@@ -284,21 +284,20 @@ class LecturerAIService
             "SELECT u.code AS unit_code, a.name AS assessment_name,
                     a.is_published,
                     COUNT(m.id) AS uploaded,
-                    COALESCE(enr.enrolled, 0) AS enrolled
+                    enr.enrolled
              FROM assessments a
              JOIN units u ON u.id = a.unit_id
              LEFT JOIN marks m ON m.assessment_id = a.id
-             LEFT JOIN (
+             JOIN (
                  SELECT unit_id, COUNT(DISTINCT student_id) AS enrolled
                  FROM enrollments
                  WHERE academic_year = ? AND semester = ?
                  GROUP BY unit_id
              ) enr ON enr.unit_id = u.id
              WHERE u.lecturer_id = ?
-               AND a.academic_year = ? AND a.semester = ?
              GROUP BY a.id, u.code, a.name, a.is_published, enr.enrolled
              ORDER BY u.code, a.id",
-            [$year, $sem, $lecturerId, $year, $sem]
+            [$year, $sem, $lecturerId]
         );
     }
 
@@ -349,18 +348,28 @@ class LecturerAIService
 
     private static function httpPost(string $url, array $payload): array
     {
+        $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        if ($payloadJson === false) {
+            $jsonError = json_last_error_msg();
+            error_log("[LecturerAI] Payload JSON encode failed: {$jsonError}");
+            return ['ok' => false, 'status' => 0, 'body' => json_encode(['error' => ['code' => 0, 'message' => "Payload encode failed: {$jsonError}"]])];
+        }
+
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_POSTFIELDS     => $payloadJson,
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . LM_STUDIO_API_KEY,
+                'Accept: application/json',
             ],
             CURLOPT_TIMEOUT        => 120,
+            CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_ENCODING       => '',
         ]);
 
         $body   = curl_exec($ch);
@@ -368,8 +377,9 @@ class LecturerAIService
         $error  = curl_error($ch);
         curl_close($ch);
 
-        if ($body === false) {
-            return ['ok' => false, 'status' => 0, 'body' => $error];
+        if ($error) {
+            error_log('[LecturerAI] cURL error: ' . $error);
+            return ['ok' => false, 'status' => 0, 'body' => json_encode(['error' => ['code' => 0, 'message' => $error]])];
         }
 
         return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'body' => $body];

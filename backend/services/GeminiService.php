@@ -322,11 +322,22 @@ class GeminiService
 
     private static function httpPost(string $url, array $payload): array
     {
+        $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        if ($payloadJson === false) {
+            $jsonError = json_last_error_msg();
+            error_log("[AI] Payload JSON encode failed: {$jsonError}");
+            return ['ok' => false, 'status' => 0, 'body' => json_encode(['error' => ['code' => 0, 'message' => "Payload JSON encode failed: {$jsonError}"]])];
+        }
+
+        if (defined('APP_ENV') && APP_ENV === 'development') {
+            error_log('[AI] LM Studio payload: ' . $payloadJson);
+        }
+
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
+            CURLOPT_POSTFIELDS     => $payloadJson,
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . LM_STUDIO_API_KEY,
@@ -346,6 +357,10 @@ class GeminiService
         if ($error) {
             error_log('[AI] cURL error: ' . $error);
             return ['ok' => false, 'status' => 0, 'body' => json_encode(['error' => ['code' => 0, 'message' => $error]])];
+        }
+
+        if (defined('APP_ENV') && APP_ENV === 'development') {
+            error_log("[AI] LM Studio response status={$status}, body={$body}");
         }
 
         return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'body' => $body];

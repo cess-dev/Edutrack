@@ -21,17 +21,23 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../backend/middleware/auth.php';
 
 Auth::startSession();
-Auth::requireRole('lecturer');
+Auth::requireAnyRole(['lecturer', 'student']);
 
 header('Content-Type: application/json');
 
-$user = Auth::user();
+$user   = Auth::user();
+$role   = Auth::role();
+$isStudent = $role === 'student';
+
+// Table and column differ by role
+$prefsTable  = $isStudent ? 'student_notification_preferences' : 'notification_preferences';
+$idColumn    = $isStudent ? 'student_id' : 'lecturer_id';
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $prefs = DB::row(
-        "SELECT email_enabled, notify_before_minutes FROM notification_preferences WHERE lecturer_id = ?",
+        "SELECT email_enabled, notify_before_minutes FROM {$prefsTable} WHERE {$idColumn} = ?",
         [$user['id']]
     );
 
@@ -60,10 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Verify lecturer has an email address to notify
     if ($enabled) {
-        $lecturerEmail = DB::row("SELECT email FROM users WHERE id = ?", [$user['id']])['email'] ?? '';
-        if (empty($lecturerEmail)) {
+        $email = DB::row("SELECT email FROM users WHERE id = ?", [$user['id']])['email'] ?? '';
+        if (empty($email)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'You must add an email address to your profile before enabling notifications.']);
             exit;
@@ -71,12 +76,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     DB::execute(
-        "INSERT INTO notification_preferences (lecturer_id, email_enabled, notify_before_minutes)
+        "INSERT INTO {$prefsTable} ({$idColumn}, email_enabled, notify_before_minutes)
          VALUES (?, ?, ?)
          ON DUPLICATE KEY UPDATE email_enabled = VALUES(email_enabled),
                                  notify_before_minutes = VALUES(notify_before_minutes)",
         [$user['id'], $enabled ? 1 : 0, $minutes]
     );
+
+    // Student preferences are simpler — no queue management needed
+    if ($isStudent) {
+        echo json_encode([
+            'success' => true,
+            'prefs'   => ['email_enabled' => $enabled, 'notify_before_minutes' => $minutes],
+        ]);
+        exit;
+    }
 
     // Re-generate the queue whenever prefs change so timing stays accurate
     if ($enabled) {

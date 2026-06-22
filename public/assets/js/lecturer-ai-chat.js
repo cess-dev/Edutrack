@@ -55,7 +55,6 @@ const AiChat = (() => {
     btn.setAttribute('aria-expanded', 'true');
     btn.innerHTML = closeSvg();
     requestAnimationFrame(() => panel.classList.add('ai-open'));
-    if (history.length === 0) chips.hidden = false;
     setTimeout(() => input.focus(), 200);
   }
 
@@ -110,9 +109,9 @@ const AiChat = (() => {
         appendError(data.message || 'Something went wrong. Please try again.');
         history.pop();
       }
-    } catch {
+    } catch (err) {
       hideTyping();
-      appendError('Could not reach the AI. Make sure LM Studio is running.');
+      appendError('Could not reach the AI service. Check that LM Studio is running and accessible. (' + err.message + ')');
       history.pop();
     } finally {
       isThinking       = false;

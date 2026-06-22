@@ -73,7 +73,6 @@ const ParentAiChat = (() => {
     const badge = btn.querySelector('.pai-badge');
     if (badge) badge.remove();
     requestAnimationFrame(() => panel.classList.add('pai-open'));
-    if (history.length === 0) chips.hidden = false;
     setTimeout(() => input.focus(), 200);
   }
 

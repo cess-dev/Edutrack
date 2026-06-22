@@ -65,13 +65,17 @@ $byDay = [];
 foreach ($schedule as $slot) {
     $byDay[$slot['day_of_week']][] = $slot;
 }
+
+$csrfToken = Auth::csrfToken();
+$pageTitle = 'Class Schedule';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-base-url="<?= htmlspecialchars(BASE_URL) ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Class Schedule — <?= htmlspecialchars(APP_NAME) ?></title>
+  <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken) ?>">
+  <title><?= htmlspecialchars($pageTitle) ?> — <?= htmlspecialchars(APP_NAME) ?></title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/public/assets/css/parent.css">
   <style>
@@ -144,13 +148,17 @@ foreach ($schedule as $slot) {
 <div class="layout">
   <?php require_once __DIR__ . '/../partials/sidebar_parent.php'; ?>
 
-  <main class="main-content">
-    <div class="page-header">
-      <h1 class="page-title">Class Schedule</h1>
-      <p class="page-subtitle">
-        <?= htmlspecialchars($academicYear) ?> &nbsp;·&nbsp; Semester <?= $semester ?>
-      </p>
-    </div>
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar-title">Class Schedule</span>
+      <div class="topbar-actions">
+        <span class="text-sm text-muted">
+          <?= htmlspecialchars($academicYear) ?> &nbsp;·&nbsp; Semester <?= $semester ?>
+        </span>
+      </div>
+    </header>
+
+    <div class="page-content">
 
     <?php if (empty($children)): ?>
       <div class="empty-state">
@@ -258,7 +266,9 @@ foreach ($schedule as $slot) {
       </div>
 
     <?php endif; ?>
-  </main>
+
+    </div><!-- /page-content -->
+  </div><!-- /main -->
 </div>
 
 <?php require_once __DIR__ . '/../partials/parent_ai_widget.php'; ?>

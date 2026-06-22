@@ -33,6 +33,7 @@ $routes = [
     'student/scan'           => 'student/scan.php',
     'student/profile'        => 'student/profile.php',
     'student/history'        => 'student/history.php',
+    'student/timetable'      => 'student/timetable.php',
 
     // Admin
     'admin/login'            => 'admin/login.php',

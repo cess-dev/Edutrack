@@ -110,6 +110,12 @@ $pendingDisputes = (int)(DB::row(
       <span>Analytics</span>
     </a>
 
+    <a href="<?= BASE_URL ?>/lecturer/exam-insights"
+       class="nav-item <?= navActive('exam_insights.php', $currentPage) ?>">
+      <span class="nav-icon">🔍</span>
+      <span>Exam Insights</span>
+    </a>
+
 
     <div class="nav-section-label">Account</div>
 

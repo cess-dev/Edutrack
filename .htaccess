@@ -53,8 +53,8 @@ Options -Indexes -MultiViews
     php_flag expose_php Off
     php_value session.cookie_httponly 1
     php_value session.use_strict_mode 1
-    php_value upload_max_filesize 6M
-    php_value post_max_size 8M
+    php_value upload_max_filesize 16M
+    php_value post_max_size 18M
     php_value max_execution_time 60
 </IfModule>
 
